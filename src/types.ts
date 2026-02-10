@@ -18,6 +18,8 @@ export type State = {
   // inversion metadata (optional)
   inverted?: boolean;
   inversionMask?: number;
+  // sticky state (optional)
+  stuck?: boolean;
 };
 
 export type Event = {

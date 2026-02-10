@@ -1,8 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
-import { makeRng, randInt } from "../src/rng";
-import { computeInversionStepFromStart } from "../src/variants/square_inversion_reflect";
-import { runVariant } from "../src/run";
-import { SquareInversionReflect } from "../src/variants/square_inversion_reflect";
+import { makeRng, randInt } from "./rng.js";
+import { computeInversionStepFromStart } from "./variants/square_inversion_reflect.js";
+import { runVariant } from "./run.js";
+import { SquareInversionReflect } from "./variants/square_inversion_reflect.js";
 
 const basicCfg = {
   sizeX: 5,

@@ -1,4 +1,4 @@
-import { RunConfig, State, Variant } from "../types.js";
+import type { RunConfig, State, Variant } from "../types.js";
 
 // This variant introduces a 'sticky' boundary: when a particle hits a wall, it stays there for one step before reflecting.
 export const SquareStickyReflect: Variant = {
