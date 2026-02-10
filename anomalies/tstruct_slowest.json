@@ -1,0 +1,722 @@
+[
+  {
+    "score": 4295,
+    "report": {
+      "runIndex": 20,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 10,
+        "sizeY": 3,
+        "x0": 5,
+        "y0": 5,
+        "vx0": 2,
+        "vy0": 1,
+        "phase0": 0,
+        "steps": 4416,
+        "multiplier": 12,
+        "mod": 1000003,
+        "inversionStep": 4295
+      },
+      "inversionStep": 4295,
+      "eventsCount": 726,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.1644021739130435
+        },
+        "structure": {
+          "repeatRate": 0.8355978260869565
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 4295
+        }
+      }
+    }
+  },
+  {
+    "score": 3886,
+    "report": {
+      "runIndex": 10,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 15,
+        "sizeY": 11,
+        "x0": 0,
+        "y0": 0,
+        "vx0": -2,
+        "vy0": 1,
+        "phase0": 0,
+        "steps": 4681,
+        "multiplier": 5,
+        "mod": 1000003,
+        "inversionStep": 3886
+      },
+      "inversionStep": 3886,
+      "eventsCount": 7,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.0014954069643238624
+        },
+        "structure": {
+          "repeatRate": 0.9985045930356762
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 3886
+        }
+      }
+    }
+  },
+  {
+    "score": 3743,
+    "report": {
+      "runIndex": 18,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 9,
+        "sizeY": 13,
+        "x0": 4,
+        "y0": 2,
+        "vx0": -1,
+        "vy0": -2,
+        "phase0": 0,
+        "steps": 4653,
+        "multiplier": 15,
+        "mod": 1000003,
+        "inversionStep": 3743
+      },
+      "inversionStep": 3743,
+      "eventsCount": 115,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.02471523748119493
+        },
+        "structure": {
+          "repeatRate": 0.975284762518805
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 3743
+        }
+      }
+    }
+  },
+  {
+    "score": 3182,
+    "report": {
+      "runIndex": 2,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 13,
+        "sizeY": 11,
+        "x0": 1,
+        "y0": 4,
+        "vx0": -2,
+        "vy0": 2,
+        "phase0": 0,
+        "steps": 3892,
+        "multiplier": 15,
+        "mod": 1000003,
+        "inversionStep": 3182
+      },
+      "inversionStep": 3182,
+      "eventsCount": 83,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.02132579650565262
+        },
+        "structure": {
+          "repeatRate": 0.9786742034943474
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 3182
+        }
+      }
+    }
+  },
+  {
+    "score": 2846,
+    "report": {
+      "runIndex": 12,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 13,
+        "sizeY": 7,
+        "x0": 3,
+        "y0": 5,
+        "vx0": 2,
+        "vy0": 1,
+        "phase0": 0,
+        "steps": 2971,
+        "multiplier": 3,
+        "mod": 1000003,
+        "inversionStep": 2846
+      },
+      "inversionStep": 2846,
+      "eventsCount": 106,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.035678222820599126
+        },
+        "structure": {
+          "repeatRate": 0.9643217771794008
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 2846
+        }
+      }
+    }
+  },
+  {
+    "score": 2581,
+    "report": {
+      "runIndex": 5,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 15,
+        "sizeY": 9,
+        "x0": 4,
+        "y0": 3,
+        "vx0": -1,
+        "vy0": 1,
+        "phase0": 0,
+        "steps": 4219,
+        "multiplier": 8,
+        "mod": 1000003,
+        "inversionStep": 2581
+      },
+      "inversionStep": 2581,
+      "eventsCount": 66,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.015643517421189856
+        },
+        "structure": {
+          "repeatRate": 0.9843564825788101
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 2581
+        }
+      }
+    }
+  },
+  {
+    "score": 2375,
+    "report": {
+      "runIndex": 4,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 3,
+        "sizeY": 4,
+        "x0": 4,
+        "y0": 0,
+        "vx0": -2,
+        "vy0": 2,
+        "phase0": 0,
+        "steps": 2742,
+        "multiplier": 10,
+        "mod": 1000003,
+        "inversionStep": 2375
+      },
+      "inversionStep": 2375,
+      "eventsCount": 856,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.312180889861415
+        },
+        "structure": {
+          "repeatRate": 0.687819110138585
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 2375
+        }
+      }
+    }
+  },
+  {
+    "score": 2315,
+    "report": {
+      "runIndex": 14,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 14,
+        "sizeY": 4,
+        "x0": 3,
+        "y0": 5,
+        "vx0": 2,
+        "vy0": 2,
+        "phase0": 0,
+        "steps": 3649,
+        "multiplier": 13,
+        "mod": 1000003,
+        "inversionStep": 2315
+      },
+      "inversionStep": 2315,
+      "eventsCount": 482,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.13209098383118661
+        },
+        "structure": {
+          "repeatRate": 0.8679090161688134
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 2315
+        }
+      }
+    }
+  },
+  {
+    "score": 1946,
+    "report": {
+      "runIndex": 13,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 14,
+        "sizeY": 14,
+        "x0": 5,
+        "y0": 5,
+        "vx0": -1,
+        "vy0": -2,
+        "phase0": 0,
+        "steps": 3113,
+        "multiplier": 16,
+        "mod": 1000003,
+        "inversionStep": 1946
+      },
+      "inversionStep": 1946,
+      "eventsCount": 66,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.02120141342756184
+        },
+        "structure": {
+          "repeatRate": 0.9787985865724381
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1946
+        }
+      }
+    }
+  },
+  {
+    "score": 1369,
+    "report": {
+      "runIndex": 6,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 4,
+        "sizeY": 13,
+        "x0": 5,
+        "y0": 3,
+        "vx0": 1,
+        "vy0": -2,
+        "phase0": 0,
+        "steps": 3345,
+        "multiplier": 11,
+        "mod": 1000003,
+        "inversionStep": 1369
+      },
+      "inversionStep": 1369,
+      "eventsCount": 118,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.03527653213751868
+        },
+        "structure": {
+          "repeatRate": 0.9647234678624813
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1369
+        }
+      }
+    }
+  },
+  {
+    "score": 1321,
+    "report": {
+      "runIndex": 19,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 12,
+        "sizeY": 8,
+        "x0": 1,
+        "y0": 2,
+        "vx0": 1,
+        "vy0": -1,
+        "phase0": 0,
+        "steps": 4810,
+        "multiplier": 6,
+        "mod": 1000003,
+        "inversionStep": 1321
+      },
+      "inversionStep": 1321,
+      "eventsCount": 48,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.00997920997920998
+        },
+        "structure": {
+          "repeatRate": 0.99002079002079
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1321
+        }
+      }
+    }
+  },
+  {
+    "score": 1213,
+    "report": {
+      "runIndex": 8,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 10,
+        "sizeY": 4,
+        "x0": 5,
+        "y0": 3,
+        "vx0": -1,
+        "vy0": -1,
+        "phase0": 0,
+        "steps": 1987,
+        "multiplier": 15,
+        "mod": 1000003,
+        "inversionStep": 1213
+      },
+      "inversionStep": 1213,
+      "eventsCount": 129,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.06492199295420231
+        },
+        "structure": {
+          "repeatRate": 0.9350780070457977
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1213
+        }
+      }
+    }
+  },
+  {
+    "score": 1152,
+    "report": {
+      "runIndex": 15,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 3,
+        "sizeY": 13,
+        "x0": 2,
+        "y0": 2,
+        "vx0": 1,
+        "vy0": -1,
+        "phase0": 0,
+        "steps": 2345,
+        "multiplier": 7,
+        "mod": 1000003,
+        "inversionStep": 1152
+      },
+      "inversionStep": 1152,
+      "eventsCount": 116,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.049466950959488276
+        },
+        "structure": {
+          "repeatRate": 0.9505330490405117
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1152
+        }
+      }
+    }
+  },
+  {
+    "score": 1082,
+    "report": {
+      "runIndex": 3,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 5,
+        "sizeY": 14,
+        "x0": 2,
+        "y0": 1,
+        "vx0": 1,
+        "vy0": -2,
+        "phase0": 0,
+        "steps": 1364,
+        "multiplier": 9,
+        "mod": 1000003,
+        "inversionStep": 1082
+      },
+      "inversionStep": 1082,
+      "eventsCount": 100,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.07331378299120235
+        },
+        "structure": {
+          "repeatRate": 0.9266862170087976
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1082
+        }
+      }
+    }
+  },
+  {
+    "score": 1060,
+    "report": {
+      "runIndex": 16,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 4,
+        "sizeY": 14,
+        "x0": 2,
+        "y0": 2,
+        "vx0": 1,
+        "vy0": -2,
+        "phase0": 0,
+        "steps": 4547,
+        "multiplier": 14,
+        "mod": 1000003,
+        "inversionStep": 1060
+      },
+      "inversionStep": 1060,
+      "eventsCount": 234,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.05146250274906532
+        },
+        "structure": {
+          "repeatRate": 0.9485374972509347
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1060
+        }
+      }
+    }
+  },
+  {
+    "score": 1029,
+    "report": {
+      "runIndex": 1,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 11,
+        "sizeY": 11,
+        "x0": 4,
+        "y0": 3,
+        "vx0": -1,
+        "vy0": 2,
+        "phase0": 0,
+        "steps": 1846,
+        "multiplier": 5,
+        "mod": 1000003,
+        "inversionStep": 1029
+      },
+      "inversionStep": 1029,
+      "eventsCount": 163,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.08829902491874322
+        },
+        "structure": {
+          "repeatRate": 0.9117009750812568
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 1029
+        }
+      }
+    }
+  },
+  {
+    "score": 821,
+    "report": {
+      "runIndex": 11,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 15,
+        "sizeY": 9,
+        "x0": 5,
+        "y0": 1,
+        "vx0": -2,
+        "vy0": 1,
+        "phase0": 0,
+        "steps": 1231,
+        "multiplier": 15,
+        "mod": 1000003,
+        "inversionStep": 821
+      },
+      "inversionStep": 821,
+      "eventsCount": 33,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.026807473598700244
+        },
+        "structure": {
+          "repeatRate": 0.9731925264012997
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 821
+        }
+      }
+    }
+  },
+  {
+    "score": 743,
+    "report": {
+      "runIndex": 17,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 11,
+        "sizeY": 4,
+        "x0": 3,
+        "y0": 0,
+        "vx0": 1,
+        "vy0": -1,
+        "phase0": 0,
+        "steps": 975,
+        "multiplier": 20,
+        "mod": 1000003,
+        "inversionStep": 743
+      },
+      "inversionStep": 743,
+      "eventsCount": 58,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.059487179487179485
+        },
+        "structure": {
+          "repeatRate": 0.9405128205128205
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 743
+        }
+      }
+    }
+  },
+  {
+    "score": 574,
+    "report": {
+      "runIndex": 9,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 8,
+        "sizeY": 13,
+        "x0": 3,
+        "y0": 1,
+        "vx0": 1,
+        "vy0": -1,
+        "phase0": 0,
+        "steps": 3001,
+        "multiplier": 17,
+        "mod": 1000003,
+        "inversionStep": 574
+      },
+      "inversionStep": 574,
+      "eventsCount": 43,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.01432855714761746
+        },
+        "structure": {
+          "repeatRate": 0.9856714428523825
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 574
+        }
+      }
+    }
+  },
+  {
+    "score": 227,
+    "report": {
+      "runIndex": 7,
+      "seed": 424242,
+      "cfg": {
+        "sizeX": 13,
+        "sizeY": 5,
+        "x0": 2,
+        "y0": 3,
+        "vx0": 1,
+        "vy0": 2,
+        "phase0": 0,
+        "steps": 3169,
+        "multiplier": 17,
+        "mod": 1000003,
+        "inversionStep": 227
+      },
+      "inversionStep": 227,
+      "eventsCount": 59,
+      "anomaly": {
+        "randomness": {
+          "maxEntropy": 0.01861786052382455
+        },
+        "structure": {
+          "repeatRate": 0.9813821394761755
+        },
+        "reemergence": {
+          "reemerges": true
+        },
+        "timeToStructure": {
+          "t_struct": 227
+        }
+      }
+    }
+  }
+]

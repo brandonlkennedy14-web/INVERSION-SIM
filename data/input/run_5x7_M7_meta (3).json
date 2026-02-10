@@ -1,0 +1,28 @@
+{
+  "SIZE_X": 5,
+  "SIZE_Y": 7,
+  "initial_position": [
+    2,
+    4
+  ],
+  "initial_velocity": [
+    1,
+    2
+  ],
+  "multiplier": 7,
+  "modulus": 1000003,
+  "phase0": 1,
+  "steps": 5000,
+  "maxPhaseSeen": 995087,
+  "totalEvents": 460,
+  "diagEvents": 160,
+  "offEvents": 300,
+  "minCornerDistance": 0,
+  "finalState": {
+    "x": 3,
+    "y": 4,
+    "vx": -2,
+    "vy": 1,
+    "phase": 877781
+  }
+}

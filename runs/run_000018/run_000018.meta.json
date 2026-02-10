@@ -1,0 +1,15 @@
+{
+  "parameters": {
+    "sizeX": 5,
+    "sizeY": 7,
+    "x0": 1,
+    "y0": 1,
+    "vx0": 1,
+    "vy0": 1,
+    "phase0": 0,
+    "steps": 200003,
+    "multiplier": 7,
+    "mod": 1000003,
+    "inversionStep": 100001
+  }
+}
