@@ -137,6 +137,22 @@ class AbstractRenderer {
 
 function getConfigFromUI(): RunConfig {
   const reducedPrimeGrowth = (document.getElementById('reducedPrimeGrowth') as HTMLInputElement).checked;
+  const steps = parseInt((document.getElementById('steps') as HTMLInputElement).value);
+  const inversionSchedule = [];
+
+  if ((document.getElementById('inversionGEOM') as HTMLInputElement).checked) {
+    inversionSchedule.push({ step: Math.floor(steps * 0.20), kind: "GEOM" });
+  }
+  if ((document.getElementById('inversionSPHERE') as HTMLInputElement).checked) {
+    inversionSchedule.push({ step: Math.floor(steps * 0.40), kind: "SPHERE" });
+  }
+  if ((document.getElementById('inversionOBSERVER') as HTMLInputElement).checked) {
+    inversionSchedule.push({ step: Math.floor(steps * 0.60), kind: "OBSERVER" });
+  }
+  if ((document.getElementById('inversionCAUSAL') as HTMLInputElement).checked) {
+    inversionSchedule.push({ step: Math.floor(steps * 0.80), kind: "CAUSAL" });
+  }
+
   return {
     sizeX: parseInt((document.getElementById('sizeX') as HTMLInputElement).value),
     sizeY: parseInt((document.getElementById('sizeY') as HTMLInputElement).value),
@@ -145,15 +161,10 @@ function getConfigFromUI(): RunConfig {
     vx0: parseInt((document.getElementById('vx0') as HTMLInputElement).value),
     vy0: parseInt((document.getElementById('vy0') as HTMLInputElement).value),
     phase0: 0,
-    steps: parseInt((document.getElementById('steps') as HTMLInputElement).value),
+    steps: steps,
     multiplier: reducedPrimeGrowth ? 3 : 7,
     mod: 1000003,
-    inversionSchedule: [
-      { step: Math.floor(parseInt((document.getElementById('steps') as HTMLInputElement).value) * 0.20), kind: "GEOM" },
-      { step: Math.floor(parseInt((document.getElementById('steps') as HTMLInputElement).value) * 0.40), kind: "SPHERE" },
-      { step: Math.floor(parseInt((document.getElementById('steps') as HTMLInputElement).value) * 0.60), kind: "OBSERVER" },
-      { step: Math.floor(parseInt((document.getElementById('steps') as HTMLInputElement).value) * 0.80), kind: "CAUSAL" },
-    ],
+    inversionSchedule: inversionSchedule,
   };
 }
 

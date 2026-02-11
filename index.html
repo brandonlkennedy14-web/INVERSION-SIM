@@ -236,6 +236,13 @@
       <label>Velocity Y: <input type="number" id="vy0" value="1" step="0.1"></label>
       <label>Simulation Steps: <input type="number" id="steps" value="200003" min="1000" max="1000000"></label>
       <label>Reduced Prime Growth: <input type="checkbox" id="reducedPrimeGrowth"></label>
+      <div id="inversionToggles">
+        <label>Inversion Toggles:</label><br>
+        <label>GEOM: <input type="checkbox" id="inversionGEOM" checked></label>
+        <label>SPHERE: <input type="checkbox" id="inversionSPHERE" checked></label>
+        <label>OBSERVER: <input type="checkbox" id="inversionOBSERVER" checked></label>
+        <label>CAUSAL: <input type="checkbox" id="inversionCAUSAL" checked></label>
+      </div>
       <button id="runSim">🚀 Launch Simulation</button>
     </div>
     <div id="modeButtons">
