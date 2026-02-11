@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { RunConfig, State, Variant, Event } from "./types.js";
+import type { RunConfig, State, Variant, Event } from "./types.js";
 
 export function runVariant(variant: Variant, cfg: RunConfig) {
   let s: State = { step: 0, x: cfg.x0, y: cfg.y0, vx: cfg.vx0, vy: cfg.vy0, phase: cfg.phase0 };
@@ -27,7 +27,8 @@ export function runVariant(variant: Variant, cfg: RunConfig) {
           const before = { ...next };
 
           if (m.kind === "GEOM") {
-            next = { ...next, vx: -next.vx, vy: -next.vy };
+            // Invert velocity and reflect position back to start point
+            next = { ...next, vx: -next.vx, vy: -next.vy, x: cfg.x0, y: cfg.y0 };
             inversionMask |= 1 << 0;
           } else if (m.kind === "SPHERE") {
             const cx = (cfg.sizeX - 1) / 2;
@@ -43,14 +44,16 @@ export function runVariant(variant: Variant, cfg: RunConfig) {
 
           (next as any).inverted = true;
           (next as any).inversionMask = inversionMask;
+          (next as any).inversionKind = m.kind; // Log the kind for better representation
 
-          // marker event
+          // marker event with more details
           events.push({
             step: next.step,
             eventType: `INVERT_${m.kind}`,
             phaseBefore: before.phase,
             phaseAfter: next.phase,
             x: next.x, y: next.y, vx: next.vx, vy: next.vy,
+            inversionKind: m.kind, // Additional field for logical representation
           } as any);
         }
       }
