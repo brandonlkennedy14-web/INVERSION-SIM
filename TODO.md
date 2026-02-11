@@ -23,3 +23,15 @@
 ## 6. Color the Beam in 4 Different Colors
 - [ ] Already implemented in TopologyRenderer renderTrajectory (red, blue, green, purple)
 - [ ] Verify display
+
+## 7. Add Color Illusion Options to Browser UI
+- [x] Add dropdown or buttons in index.html for color illusion modes (e.g., Normal, Checkerboard Illusion, Color Contrast, etc.)
+- [x] Update TopologyRenderer.ts to support different color schemes for illusions
+- [x] Update src/browser.ts to apply selected color mode to rendering
+
+## 8. Build Fleet of 8 Bots with Constraint-Only Learning
+- [x] Create src/botFleet.ts with Bot class implementing COL (propose configs, get constraint feedback, iterate)
+- [x] Split 8 bots into 2 groups using braided logic (alternating assignment)
+- [x] Bots autonomously set simulation parameters and run experiments
+- [x] Integrate bot fleet into browser.ts with a button to run bot simulations
+- [x] Ensure bots learn via constraints without answers, allowing natural problem solving

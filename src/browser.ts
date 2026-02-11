@@ -5,7 +5,8 @@ import { SquareClampReflect } from './variants/square_clamp_reflect.js';
 import { SquareInversionReflect } from './variants/square_inversion_reflect.js';
 import { SquareStickyReflect } from './variants/square_sticky_reflect.js';
 import { runVariant } from './core.js';
-import type { RunConfig } from './types.js';
+import type { RunConfig, InversionKind } from './types.js';
+import BotFleet from './botFleet.js';
 import * as THREE from 'three';
 
 let currentRenderer: TopologyRenderer | ThreeDRenderer | AbstractRenderer | null = null;
@@ -13,6 +14,7 @@ let topologyRenderer: TopologyRenderer | null = null;
 let currentResult: any = null;
 let currentCfg: RunConfig;
 let currentVariant = MirrorInversion;
+let botFleet: BotFleet | null = null;
 
 class ThreeDRenderer {
   private scene: THREE.Scene;
@@ -168,6 +170,11 @@ function getConfigFromUI(): RunConfig {
   };
 }
 
+function getColorModeFromUI(): string {
+  const colorModeSelect = document.getElementById('colorMode') as HTMLSelectElement;
+  return colorModeSelect.value;
+}
+
 function runSimulation() {
   console.log("Running simulation in browser...");
 
@@ -190,8 +197,11 @@ function switchToMode(mode: string) {
     // Clean up previous renderer if needed
   }
 
+  const colorMode = getColorModeFromUI();
+
   if (mode === '2D') {
     topologyRenderer = new TopologyRenderer(visualization, 800, 600);
+    topologyRenderer.setColorMode(colorMode);
     topologyRenderer.renderGrid(currentResult.trajectory, currentCfg.sizeX, currentCfg.sizeY);
     topologyRenderer.renderTrajectory(currentResult.trajectory);
     topologyRenderer.renderEvents(currentResult.events);
@@ -207,18 +217,21 @@ function switchToMode(mode: string) {
     if (!topologyRenderer) {
       topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     }
+    topologyRenderer.setColorMode(colorMode);
     topologyRenderer.toroidalUnwinding(currentResult.trajectory, currentCfg.sizeX, currentCfg.sizeY);
     currentRenderer = topologyRenderer;
   } else if (mode === 'Hyperbolic') {
     if (!topologyRenderer) {
       topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     }
+    topologyRenderer.setColorMode(colorMode);
     topologyRenderer.hyperbolicProjection(currentResult.trajectory);
     currentRenderer = topologyRenderer;
   } else if (mode === 'PhaseSpace') {
     if (!topologyRenderer) {
       topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     }
+    topologyRenderer.setColorMode(colorMode);
     topologyRenderer.phaseSpaceRepresentation(currentResult.trajectory);
     currentRenderer = topologyRenderer;
   }
@@ -264,6 +277,23 @@ window.addEventListener('load', () => {
   if (zoomInBtn) zoomInBtn.addEventListener('click', () => zoom(1.2));
   if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => zoom(0.8));
 
+  const runBotsBtn = document.getElementById('runBots');
+  if (runBotsBtn) runBotsBtn.addEventListener('click', runBotFleet);
+
   // Initial run
   runSimulation();
 });
+
+function runBotFleet() {
+  console.log("Running bot fleet...");
+  if (!botFleet) {
+    botFleet = new BotFleet();
+  }
+  botFleet.runIteration();
+  const group0Results = botFleet.getGroupResults(0);
+  const group1Results = botFleet.getGroupResults(1);
+  console.log("Group 0 results:", group0Results);
+  console.log("Group 1 results:", group1Results);
+  // Display results in UI or console
+  alert(`Bot fleet run complete. Group 0: ${group0Results.length} bots, Group 1: ${group1Results.length} bots. Check console for details.`);
+}

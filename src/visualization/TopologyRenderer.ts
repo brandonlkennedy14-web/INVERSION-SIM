@@ -12,6 +12,7 @@ export class TopologyRenderer {
   private height: number;
   private cellSize: number = 20; // pixels per cell
   private zoomLevel: number = 1;
+  private colorMode: string = 'normal';
 
   constructor(container: HTMLElement, width: number = 800, height: number = 600) {
     this.canvas = document.createElement('canvas');
@@ -70,7 +71,18 @@ export class TopologyRenderer {
     if (!first) return;
 
     const segmentLength = Math.floor(trajectory.length / 4); // Divide into 4 segments
-    const colors = ['red', 'blue', 'green', 'purple'];
+    let colors: string[] = ['red', 'blue', 'green', 'purple'];
+
+    // Apply color illusion modes
+    if (this.colorMode === 'checkerboard') {
+      colors = ['black', 'white', 'black', 'white'];
+    } else if (this.colorMode === 'contrast') {
+      colors = ['white', 'black', 'white', 'black'];
+    } else if (this.colorMode === 'monochrome') {
+      colors = ['gray', 'darkgray', 'lightgray', 'gray'];
+    } else if (this.colorMode === 'rainbow') {
+      colors = ['hsl(0,100%,50%)', 'hsl(120,100%,50%)', 'hsl(240,100%,50%)', 'hsl(60,100%,50%)'];
+    }
 
     for (let segment = 0; segment < 4; segment++) {
       const startIdx = segment * segmentLength;
@@ -183,6 +195,10 @@ export class TopologyRenderer {
         this.ctx.stroke();
       }
     }
+  }
+
+  public setColorMode(mode: string) {
+    this.colorMode = mode;
   }
 
   public zoom(factor: number) {

@@ -236,6 +236,13 @@
       <label>Velocity Y: <input type="number" id="vy0" value="1" step="0.1"></label>
       <label>Simulation Steps: <input type="number" id="steps" value="200003" min="1000" max="1000000"></label>
       <label>Reduced Prime Growth: <input type="checkbox" id="reducedPrimeGrowth"></label>
+      <label>Color Illusion Mode: <select id="colorMode">
+        <option value="normal">Normal</option>
+        <option value="checkerboard">Checkerboard Illusion</option>
+        <option value="contrast">High Contrast</option>
+        <option value="monochrome">Monochrome</option>
+        <option value="rainbow">Rainbow</option>
+      </select></label>
       <div id="inversionToggles">
         <label>Inversion Toggles:</label><br>
         <label>GEOM: <input type="checkbox" id="inversionGEOM" checked></label>
@@ -264,6 +271,9 @@
     <div id="zoomButtons">
       <button id="zoomIn">🔍 Zoom In</button>
       <button id="zoomOut">🔍 Zoom Out</button>
+    </div>
+    <div id="botButtons">
+      <button id="runBots">🤖 Run Bot Fleet</button>
     </div>
     <div id="visualization"></div>
     <div class="stats">
