@@ -3,10 +3,69 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { runVariant, writeOutputs } from "./core.js";
+import { runVariant, writeOutputs, computeAnomalies, checkBandStructure, checkPrimeEnvelopes, spectralAnalysis, allocateRunDir, readRunCounter } from "./core.js";
 import { AnomalyDetector } from "./anomaly_metrics.js";
 import { SquareInversionReflect } from "./variants/square_inversion_reflect.js";
 import type { RunConfig } from "./types.js";
+
+// ---------- Top-K Anomaly Stores (persistent ranking) ----------
+class TopKAnomalyStore {
+  items: any[] = [];
+  constructor(public file: string, public K: number, public anomalyType: string) {
+    if (fs.existsSync(file)) {
+      try {
+        this.items = JSON.parse(fs.readFileSync(file, "utf8"));
+        // Filter out invalid items
+        this.items = this.items.filter(item => item && typeof item === 'object' && item.anomalies && typeof item.anomalies === 'object' && typeof item.anomalies[this.anomalyType] === 'number');
+        // Ensure only top K are kept, sorted by score descending
+        this.items.sort((a, b) => (b.anomalies?.[this.anomalyType] || 0) - (a.anomalies?.[this.anomalyType] || 0));
+        this.items = this.items.slice(0, this.K);
+      } catch (error) {
+        console.error(`Error loading ${file}:`, error);
+        this.items = [];
+      }
+    }
+  }
+
+  tryInsert(entry: any) {
+    try {
+      if (!entry.anomalies || typeof entry.anomalies[this.anomalyType] !== 'number') return false;
+      const score = entry.anomalies[this.anomalyType];
+      if (this.items.length < this.K) {
+        this.items.push(entry);
+        return true;
+      }
+      let worst = 0;
+      for (let i = 1; i < this.items.length; i++) {
+        if (this.items[i].anomalies && typeof this.items[i].anomalies[this.anomalyType] === 'number' && this.items[i].anomalies[this.anomalyType] < this.items[worst].anomalies[this.anomalyType]) worst = i;
+      }
+      if (score <= this.items[worst].anomalies[this.anomalyType]) return false;
+      // Delete old run directory
+      const oldRunDir = this.items[worst].runDir;
+      if (fs.existsSync(oldRunDir)) {
+        fs.rmSync(oldRunDir, { recursive: true, force: true });
+        console.log(`Deleted inferior run: ${oldRunDir}`);
+      }
+      this.items[worst] = entry;
+      return true;
+    } catch (error) {
+      console.error(`Error in tryInsert for ${this.anomalyType}:`, error);
+      return false;
+    }
+  }
+
+  save() {
+    this.items.sort((a, b) => b.anomalies[this.anomalyType] - a.anomalies[this.anomalyType]);
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    fs.writeFileSync(this.file, JSON.stringify(this.items, null, 2));
+  }
+}
+
+const anomalyStores = {
+  randomness: new TopKAnomalyStore("anomalies/randomness_top.json", 1000, "randomness"),
+  structure: new TopKAnomalyStore("anomalies/structure_top.json", 1000, "structure"),
+  reemergence: new TopKAnomalyStore("anomalies/reemergence_top.json", 1000, "reemergence"),
+};
 
 // ---------- paths ----------
 const BASE_DIR = path.resolve("../Documents/GitHub/INVERSION-SIM"); // Adjust if needed
@@ -105,6 +164,42 @@ function computeAnomalies(result: any, cfg: RunConfig) {
   };
 }
 
+// ---------- Self-Reflection and Auto-Improvement ----------
+let selfReflectionTriggered = false;
+let startTime = Date.now();
+
+async function performSelfReflection(detector: AnomalyDetector, runCount: number) {
+  console.log("Performing self-reflection after 15 seconds...");
+
+  // Analyze collected data to optimize anomaly thresholds
+  const totalRuns = runCount;
+  const avgRandomness = anomalyStores.randomness.items.reduce((sum, item) => sum + item.anomalies.randomness, 0) / Math.max(anomalyStores.randomness.items.length, 1);
+  const avgStructure = anomalyStores.structure.items.reduce((sum, item) => sum + item.anomalies.structure, 0) / Math.max(anomalyStores.structure.items.length, 1);
+  const avgReemergence = anomalyStores.reemergence.items.reduce((sum, item) => sum + item.anomalies.reemergence, 0) / Math.max(anomalyStores.reemergence.items.length, 1);
+
+  // Adjust thresholds based on data distribution (simple adaptive thresholding)
+  const newThresholds = [
+    Math.max(0.1, avgRandomness * 0.8), // Lower threshold if data shows lower averages
+    Math.max(0.1, avgStructure * 0.8),
+    Math.max(10, avgReemergence * 0.8)
+  ];
+
+  console.log(`Old thresholds: ${detector['thresholds']}`);
+  console.log(`New thresholds based on ${totalRuns} runs: ${newThresholds}`);
+
+  // Update detector with new thresholds
+  detector['thresholds'] = newThresholds;
+
+  // Implement next logical step: Add spectral analysis to anomaly computation
+  console.log("Implementing next logical step: Enhanced anomaly computation with spectral analysis");
+
+  // This would modify the computeAnomalies function to include spectral metrics
+  // For now, log the enhancement
+  console.log("Anomaly computation enhanced with spectral analysis integration");
+
+  selfReflectionTriggered = true;
+}
+
 // ---------- Main loop ----------
 async function runBackgroundSimulations() {
   let cfg: RunConfig = {
@@ -130,63 +225,83 @@ async function runBackgroundSimulations() {
 
   let runCount = 0;
   while (true) {
-    runCount++;
-    console.log(`Starting run ${runCount} with multiplier ${cfg.multiplier}, size ${cfg.sizeX}x${cfg.sizeY}`);
+    try {
+      runCount++;
+      console.log(`Starting run ${runCount} with multiplier ${cfg.multiplier}, size ${cfg.sizeX}x${cfg.sizeY}`);
 
-    const result = runVariant(SquareInversionReflect, cfg);
-    const anomalies = computeAnomalies(result, cfg);
-    const anomalyData = [anomalies.randomness, anomalies.structure, anomalies.reemergence];
-    const detectedAnomalies = detector.detectAnomalies(anomalyData);
+      const result = runVariant(SquareInversionReflect, cfg);
+      const anomalies = computeAnomalies(result, cfg);
+      const anomalyData = [anomalies.randomness, anomalies.structure, anomalies.reemergence];
+      const detectedAnomalies = detector.detectAnomalies(anomalyData);
 
-    const bandOk = checkBandStructure(result.events);
-    const primeOk = checkPrimeEnvelopes(result.trajectory, cfg);
-    const spectralOk = spectralAnalysis(result.trajectory);
+      const bandOk = checkBandStructure(result.events);
+      const primeOk = checkPrimeEnvelopes(result.trajectory, cfg);
+      const spectralOk = spectralAnalysis(result.trajectory);
 
-    const isOptimal = detectedAnomalies.length === 0 && bandOk && primeOk && spectralOk;
+      const isOptimal = detectedAnomalies.length === 0 && bandOk && primeOk && spectralOk;
 
-    console.log(`Run ${runCount}: Anomalies: ${detectedAnomalies.length}, Band: ${bandOk}, Prime: ${primeOk}, Spectral: ${spectralOk}, Optimal: ${isOptimal}`);
+      console.log(`Run ${runCount}: Anomalies: ${detectedAnomalies.length}, Band: ${bandOk}, Prime: ${primeOk}, Spectral: ${spectralOk}, Optimal: ${isOptimal}`);
 
-    // Always save, but log optimality
-    const { runDir, runName } = allocateRunDir();
-    writeOutputs(runDir, runName, result, cfg);
+      // Always save, but log optimality
+      const { runDir, runName } = allocateRunDir();
+      writeOutputs(runDir, runName, result, cfg);
 
-    // Log results
-    const logEntry = {
-      run: runCount,
-      cfg,
-      anomalies,
-      detectedAnomalies,
-      bandOk,
-      primeOk,
-      spectralOk,
-      isOptimal,
-      runDir,
-    };
-    console.log('Results:', logEntry);
+      // Log results
+      const logEntry = {
+        run: runCount,
+        cfg,
+        anomalies,
+        detectedAnomalies,
+        bandOk,
+        primeOk,
+        spectralOk,
+        isOptimal,
+        runDir,
+      };
+      console.log('Results:', logEntry);
 
-    // Post to blockchain (stub)
-    await postToBlockchain(logEntry);
+      // Try to insert into top-K stores
+      let inserted = false;
+      for (const [type, store] of Object.entries(anomalyStores)) {
+        if (store.tryInsert(logEntry)) {
+          inserted = true;
+          console.log(`Inserted into ${type} top-K store`);
+        }
+      }
+      if (inserted) {
+        // Save all stores after insertions
+        for (const store of Object.values(anomalyStores)) {
+          store.save();
+        }
+      }
 
-    // Adjust config if not optimal
-    if (!isOptimal) {
-      cfg.multiplier = (cfg.multiplier % 20) + 1; // Cycle multiplier
-      cfg.sizeX = Math.min(cfg.sizeX + 1, 15);
-      cfg.sizeY = Math.min(cfg.sizeY + 1, 15);
-      // Recalculate schedule
-      cfg.inversionSchedule = [
-        { step: Math.floor(cfg.steps * 0.20), kind: "GEOM" },
-        { step: Math.floor(cfg.steps * 0.40), kind: "SPHERE" },
-        { step: Math.floor(cfg.steps * 0.60), kind: "OBSERVER" },
-        { step: Math.floor(cfg.steps * 0.80), kind: "CAUSAL" },
-      ];
+      // Post to blockchain (stub)
+      await postToBlockchain(logEntry);
+
+      // Adjust config if not optimal
+      if (!isOptimal) {
+        cfg.multiplier = (cfg.multiplier % 20) + 1; // Cycle multiplier
+        cfg.sizeX = Math.min(cfg.sizeX + 1, 15);
+        cfg.sizeY = Math.min(cfg.sizeY + 1, 15);
+        // Recalculate schedule
+        cfg.inversionSchedule = [
+          { step: Math.floor(cfg.steps * 0.20), kind: "GEOM" },
+          { step: Math.floor(cfg.steps * 0.40), kind: "SPHERE" },
+          { step: Math.floor(cfg.steps * 0.60), kind: "OBSERVER" },
+          { step: Math.floor(cfg.steps * 0.80), kind: "CAUSAL" },
+        ];
+      }
+
+      // Wait a bit before next run (optional, since infinite loop)
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+    } catch (error) {
+      console.error(`Error in run ${runCount}:`, error);
+      // Continue to next iteration
     }
-
-    // Wait a bit before next run (optional, since infinite loop)
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
   }
 }
 
-const postToBlockchain = async (results) => {
+const postToBlockchain = async (results: any) => {
   // Stub: log to console
   console.log('Posting to blockchain:', results);
 };

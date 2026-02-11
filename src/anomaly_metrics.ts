@@ -10,11 +10,11 @@ export class AnomalyDetector {
         this.thresholds = thresholds;
     }
 
-    detectAnomalies(data: number[]): number[] {
-        return data.filter((value, index) => {
-            return value > this.thresholds[index];
-        });
-    }
+  detectAnomalies(data: number[]): number[] {
+    return data.filter((value, index) => {
+      return value > this.thresholds[index];
+    });
+  }
 
     generateSignatures(anomalies: number[]): string[] {
         return anomalies.map(anomaly => `Sig_${anomaly}_${new Date().toISOString()}`);

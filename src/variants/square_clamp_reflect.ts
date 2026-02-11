@@ -1,5 +1,5 @@
 // src/variants/square_clamp_reflect.ts
-import { RunConfig, State, Variant } from "../types.js";
+import type { RunConfig, State, Variant } from "../types";
 
 /**
  * This variant is intentionally "behavior-preserving by default":
