@@ -5,6 +5,7 @@ import { SquareClampReflect } from './variants/square_clamp_reflect.js';
 import { SquareInversionReflect } from './variants/square_inversion_reflect.js';
 import { SquareStickyReflect } from './variants/square_sticky_reflect.js';
 import { AnomalyDetector } from './anomaly_metrics.js';
+import { BlockchainManager } from './blockchain.js';
 import type { RunConfig, InversionKind } from './types.js';
 import fs from 'node:fs';
 
@@ -24,12 +25,13 @@ class Bot {
     "Phase must be between 0 and 1",
     "Grid size must be reasonable (5-20)"
   ];
-  private currentConfig: RunConfig | null = null;
+  private currentConfig: RunConfig;
   private history: { config: RunConfig; feedback: ConstraintFeedback }[] = [];
 
   constructor(id: number, group: number) {
     this.id = id;
     this.group = group;
+    this.currentConfig = this.generateConfig();
   }
 
   // Generate a new config autonomously
@@ -114,19 +116,19 @@ class Bot {
     } else {
       // Adjust based on suggestions (simple heuristics)
       if (feedback.suggestions && feedback.suggestions.includes("Increase steps")) {
-        this.currentConfig!.steps *= 1.5;
+        this.currentConfig.steps *= 1.5;
       }
       if (feedback.suggestions && feedback.suggestions.includes("Reduce steps")) {
-        this.currentConfig!.steps *= 0.5;
+        this.currentConfig.steps *= 0.5;
       }
       if (feedback.suggestions && feedback.suggestions.includes("Set sizeX and sizeY between 5 and 20")) {
-        this.currentConfig!.sizeX = Math.max(5, Math.min(20, this.currentConfig!.sizeX));
-        this.currentConfig!.sizeY = Math.max(5, Math.min(20, this.currentConfig!.sizeY));
+        this.currentConfig.sizeX = Math.max(5, Math.min(20, this.currentConfig.sizeX));
+        this.currentConfig.sizeY = Math.max(5, Math.min(20, this.currentConfig.sizeY));
       }
       // Re-generate otherwise
       this.generateConfig();
     }
-    return this.currentConfig!;
+    return this.currentConfig;
   }
 
   getId(): number { return this.id; }
@@ -141,6 +143,8 @@ export class BotFleet {
   private categories: Map<string, any[]> = new Map();
   private runCounter: number = 0;
   private intervalId: NodeJS.Timeout | null = null;
+  private blockchainManager: BlockchainManager;
+  private logicChangeLog: string[] = [];
 
   constructor() {
     // Create 8 bots, split into 2 groups using braided logic (alternating)
@@ -151,6 +155,7 @@ export class BotFleet {
       this.groups[group].push(bot);
     }
     this.anomalyDetector = new AnomalyDetector();
+    this.blockchainManager = new BlockchainManager();
     this.initializeCategories();
   }
 
@@ -163,9 +168,10 @@ export class BotFleet {
   // Start continuous running in background
   startContinuousRunning(intervalMs: number = 5000): void {
     if (this.intervalId) return; // Already running
-    this.intervalId = setInterval(() => {
+    this.intervalId = setInterval(async () => {
       this.runIteration();
-      this.sortRunsData();
+      await this.sortRunsData();
+      this.deleteNonTopRuns();
       this.refineLogic();
     }, intervalMs);
   }
@@ -198,8 +204,8 @@ export class BotFleet {
     }
   }
 
-  // Sort runs/ data into categories based on anomalies
-  sortRunsData(): void {
+  // Sort runs/ data into categories based on anomalies, post to blockchain, and limit to top 1000
+  async sortRunsData(): Promise<void> {
     const runsDir = 'runs';
     if (!fs.existsSync(runsDir)) return;
     const runDirs = fs.readdirSync(runsDir).filter(d => d.startsWith('run_'));
@@ -217,27 +223,36 @@ export class BotFleet {
           if (parts.length < 8) return null;
           const [step, eventType, phaseBefore, phaseAfter, x, y, vx, vy] = parts;
           return { step: parseInt(step || '0'), eventType: eventType || '', phaseBefore: parseFloat(phaseBefore || '0'), phaseAfter: parseFloat(phaseAfter || '0'), x: parseFloat(x || '0'), y: parseFloat(y || '0'), vx: parseFloat(vx || '0'), vy: parseFloat(vy || '0') };
-        }).filter(e => e && e.step);
+        }).filter((e): e is NonNullable<typeof e> => e !== null && e.step !== undefined);
 
-        // Detect categories
+        // Detect categories and post to blockchain
         const eventCount = events.length;
         if (eventCount > 5) {
-          this.categories.get('Event Density')!.push({ runDir, events, trajectory: trajectoryJson });
+          const data = { runDir, events, trajectory: trajectoryJson, score: eventCount };
+          await this.blockchainManager.postAnomaly('Event Density', data);
         }
 
         const phaseData = trajectoryJson.map((s: any) => s.phase);
         const phaseAnomalies = this.anomalyDetector.detectAnomalies(phaseData);
         if (phaseAnomalies.length > 0) {
-          this.categories.get('Phase Anomaly')!.push({ runDir, events, trajectory: trajectoryJson, anomalies: phaseAnomalies });
+          const data = { runDir, events, trajectory: trajectoryJson, anomalies: phaseAnomalies, score: Math.max(...phaseAnomalies) };
+          await this.blockchainManager.postAnomaly('Phase Anomaly', data);
         }
 
         // Check for Spiral Phase Dynamics: multiplicative jumps
         const phaseJumps = events.map(e => e.phaseAfter - e.phaseBefore);
         const hasMultiplicative = phaseJumps.some(jump => jump > 1 && (jump % 7 === 0 || jump % 3 === 0)); // Check for *7 or *3
         if (hasMultiplicative) {
-          this.categories.get('Spiral Phase Dynamics')!.push({ runDir, events, trajectory: trajectoryJson });
+          const data = { runDir, events, trajectory: trajectoryJson, score: phaseJumps.filter(j => j > 1 && (j % 7 === 0 || j % 3 === 0)).length };
+          await this.blockchainManager.postAnomaly('Spiral Phase Dynamics', data);
         }
       }
+    }
+
+    // Update local categories from blockchain (top 1000 sorted by score descending)
+    for (const category of ['Event Density', 'Phase Anomaly', 'Spiral Phase Dynamics']) {
+      const topAnomalies = await this.blockchainManager.getTopAnomalies(category, 1000);
+      this.categories.set(category, topAnomalies.sort((a, b) => b.score - a.score));
     }
 
     // Write categories to categories/ folder
@@ -248,11 +263,30 @@ export class BotFleet {
     }
   }
 
+  // Delete runs not in top 1000 for any category
+  deleteNonTopRuns(): void {
+    const runsDir = 'runs';
+    if (!fs.existsSync(runsDir)) return;
+    const runDirs = fs.readdirSync(runsDir).filter(d => d.startsWith('run_'));
+
+    const topRunDirs = new Set<string>();
+    for (const category of ['Event Density', 'Phase Anomaly', 'Spiral Phase Dynamics']) {
+      const categoryData = this.categories.get(category) || [];
+      categoryData.forEach(anomaly => topRunDirs.add(anomaly.runDir));
+    }
+
+    for (const runDir of runDirs) {
+      if (!topRunDirs.has(runDir)) {
+        fs.rmSync(`${runsDir}/${runDir}`, { recursive: true, force: true });
+      }
+    }
+  }
+
   // Refine logic based on data: add new criteria, vary configs
   refineLogic(): void {
     // Analyze categories to find patterns
-    const spiralData = this.categories.get('Spiral Phase Dynamics')!;
-    if (spiralData.length > 0) {
+    const spiralData = this.categories.get('Spiral Phase Dynamics');
+    if (spiralData && spiralData.length > 0) {
       // Add custom criterion for spacing bands
       this.anomalyDetector.addCustomCriterion((result) => {
         const events = result.events;
@@ -273,14 +307,20 @@ export class BotFleet {
         }
         return [];
       });
+      this.logicChangeLog.push(`Added custom anomaly detection criterion for discrete spacing bands in event spacings.`);
 
       // Vary configs: change multiplier/mod for more anomalies
+      let configChanges = 0;
       for (const bot of this.bots) {
         if (bot.getHistory().length > 5) {
           const lastConfig = bot.getHistory()[bot.getHistory().length - 1].config;
           lastConfig.multiplier = lastConfig.multiplier === 7 ? 3 : 7; // Alternate
           lastConfig.mod = Math.floor(Math.random() * 1000000) + 1000000; // Vary mod
+          configChanges++;
         }
+      }
+      if (configChanges > 0) {
+        this.logicChangeLog.push(`Varied configurations for ${configChanges} bots by alternating multipliers and randomizing mods.`);
       }
     }
   }
@@ -301,6 +341,46 @@ export class BotFleet {
   // Get categories
   getCategories(): Map<string, any[]> {
     return this.categories;
+  }
+
+  // Summarize current logic of the bots
+  getLogicSummary(): string {
+    let summary = "Bot Fleet Logic Summary:\n\n";
+    summary += `Total Bots: ${this.bots.length}\n`;
+    summary += `Groups: 2 (Braided Logic: Alternating Assignment)\n\n`;
+
+    summary += "Bot Logic:\n";
+    summary += "- Each bot generates random configurations autonomously.\n";
+    summary += "- Configurations include grid size (5-20), initial position/velocity, steps (10k-110k), multiplier (3 or 7), mod (1000003), and random inversion schedules.\n";
+    summary += "- Bots run simulations using variants: MirrorInversion, SquareClampReflect, SquareInversionReflect, SquareStickyReflect.\n";
+    summary += "- After simulation, bots check constraints: trajectory length >=100, events <1000, positive inversions, phase 0-1, grid size 5-20.\n";
+    summary += "- Feedback is provided (valid/invalid with suggestions).\n";
+    summary += "- Iteration: If valid, perturb config; if invalid, adjust based on suggestions (e.g., increase steps, reduce steps, fix grid size).\n\n";
+
+    summary += "Fleet Operations:\n";
+    summary += "- Continuous running: Every 5 seconds, run iteration, sort data, delete non-top runs, refine logic.\n";
+    summary += "- Anomaly Detection: Detect from simulation results, categories: Event Density, Phase Anomaly, Spiral Phase Dynamics.\n";
+    summary += "- Blockchain Integration: Post anomalies to smart contract, retrieve top 1000 per category.\n";
+    summary += "- Storage Management: Keep only top 1000 runs per category locally, delete others.\n";
+    summary += "- Logic Refinement: Analyze Spiral Phase Dynamics to add custom criteria (e.g., spacing bands), vary configs.\n\n";
+
+    summary += "Recent Logic Changes:\n";
+    const recentChanges = this.logicChangeLog.slice(-10); // Last 10 changes
+    if (recentChanges.length > 0) {
+      recentChanges.forEach((change, index) => {
+        summary += `${index + 1}. ${change}\n`;
+      });
+    } else {
+      summary += "No recent changes.\n";
+    }
+    summary += "\n";
+
+    summary += "Current Categories:\n";
+    for (const [cat, data] of this.categories) {
+      summary += `${cat}: ${data.length} entries\n`;
+    }
+
+    return summary;
   }
 }
 

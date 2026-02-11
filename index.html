@@ -275,6 +275,34 @@
     </div>
     <div id="botButtons">
       <button id="runBots">🤖 Run Bot Fleet</button>
+      <button id="startContinuousBots">🔄 Start Continuous Bots</button>
+      <button id="stopContinuousBots">⏹️ Stop Continuous Bots</button>
+      <button id="displayCategories">📊 Display Categories</button>
+      <button id="displayLogicSummary">📝 Display Logic Summary</button>
+    </div>
+    <div id="botSummary">
+      <h2>Bot Fleet Summary</h2>
+      <div id="top10Table">
+        <h3>Top 10 Anomalies</h3>
+        <table id="anomaliesTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Category</th>
+              <th>Score</th>
+              <th>Description</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Table rows will be populated by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div id="logicSummary">
+        <h3>Logic Summary in Words</h3>
+        <pre id="logicSummaryText">No summary available yet. Start the bot fleet to see updates.</pre>
+      </div>
     </div>
     <div id="visualization"></div>
     <div class="stats">

@@ -375,7 +375,10 @@ window.addEventListener('load', () => {
   if (stopContinuousBotsBtn) stopContinuousBotsBtn.addEventListener('click', stopContinuousBotFleet);
 
   const displayCategoriesBtn = document.getElementById('displayCategories');
-  if (displayCategoriesBtn) displayCategoriesBtn.addEventListener('click', displayBotCategories);
+  if (displayCategoriesBtn) displayCategoriesBtn.addEventListener('click', displayTop10Anomalies);
+
+  const displayLogicSummaryBtn = document.getElementById('displayLogicSummary');
+  if (displayLogicSummaryBtn) displayLogicSummaryBtn.addEventListener('click', displayBotLogicSummary);
 
   // Initial run
   runSimulation();
@@ -401,6 +404,10 @@ function startContinuousBotFleet() {
     botFleet = new BotFleet();
   }
   botFleet.startContinuousRunning(5000); // Run every 5 seconds
+  // Auto-update logic summary every 5 seconds
+  setInterval(() => {
+    displayBotLogicSummary();
+  }, 5000);
   alert("Bot fleet started continuously. Check console for updates.");
 }
 
@@ -423,4 +430,50 @@ function displayBotCategories() {
     message += `${cat}: ${data.length} entries\n`;
   }
   alert(message);
+}
+
+function displayTop10Anomalies() {
+  if (!botFleet) {
+    alert("No bot fleet running.");
+    return;
+  }
+  const categories = botFleet.getCategories();
+  const allAnomalies: any[] = [];
+  for (const [category, anomalies] of categories) {
+    anomalies.forEach(anomaly => {
+      allAnomalies.push({ ...anomaly, category });
+    });
+  }
+  allAnomalies.sort((a, b) => b.score - a.score);
+  const top10 = allAnomalies.slice(0, 10);
+
+  const tableBody = document.querySelector('#anomaliesTable tbody');
+  if (tableBody) {
+    tableBody.innerHTML = '';
+    top10.forEach((anomaly, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${anomaly.category}</td>
+        <td>${anomaly.score}</td>
+        <td>${anomaly.description || 'N/A'}</td>
+        <td>${new Date(anomaly.timestamp).toLocaleString()}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+}
+
+function displayBotLogicSummary() {
+  if (!botFleet) {
+    alert("No bot fleet running.");
+    return;
+  }
+  const summary = botFleet.getLogicSummary();
+  const summaryText = document.getElementById('logicSummaryText');
+  if (summaryText) {
+    summaryText.textContent = summary;
+  } else {
+    alert(summary);
+  }
 }
