@@ -4,9 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inversion Simulation</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #111; color: #fff; }
+    #app { display: flex; flex-direction: column; align-items: center; }
+    #controls { margin-bottom: 20px; padding: 10px; background: #222; border-radius: 5px; }
+    #controls label { margin-right: 10px; }
+    #controls input { margin-right: 20px; width: 60px; }
+    button { padding: 10px 20px; margin: 5px; background: #444; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #666; }
+    #visualization { border: 1px solid #444; margin-top: 20px; }
+    #modeButtons { margin-bottom: 10px; }
+    #advancedButtons { margin-bottom: 10px; }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <h1>Inversion Simulation</h1>
+    <div id="controls">
+      <label>Size X: <input type="number" id="sizeX" value="5"></label>
+      <label>Size Y: <input type="number" id="sizeY" value="7"></label>
+      <label>X0: <input type="number" id="x0" value="1"></label>
+      <label>Y0: <input type="number" id="y0" value="1"></label>
+      <label>VX0: <input type="number" id="vx0" value="1"></label>
+      <label>VY0: <input type="number" id="vy0" value="1"></label>
+      <label>Steps: <input type="number" id="steps" value="200003"></label>
+      <button id="runSim">Run Simulation</button>
+    </div>
+    <div id="modeButtons">
+      <button id="mode2D">2D Canvas</button>
+      <button id="mode3D">3D View</button>
+      <button id="modeAbstract">Abstract</button>
+    </div>
+    <div id="advancedButtons">
+      <button id="toroidal">Toroidal Unwinding</button>
+      <button id="hyperbolic">Hyperbolic Projection</button>
+      <button id="phaseSpace">Phase Space</button>
+    </div>
+    <div id="visualization"></div>
+  </div>
   <script type="module" src="/src/browser.ts"></script>
 </body>
 </html>

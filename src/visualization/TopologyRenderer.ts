@@ -103,22 +103,70 @@ export class TopologyRenderer {
     }
   }
 
-  // Method for toroidal unwinding (placeholder)
-  public toroidalUnwinding(data: any): any {
-    // Implementation of toroidal unwinding visualization
-    return;
+  // Toroidal unwinding: Unwrap the grid to show periodicity
+  public toroidalUnwinding(trajectory: State[], sizeX: number, sizeY: number) {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    // Scale for unwinding
+    const scaleX = this.width / (sizeX * 3); // Show 3 periods
+    const scaleY = this.height / (sizeY * 3);
+
+    for (const state of trajectory) {
+      const x = (state.x + sizeX * Math.floor(state.step / (sizeX * sizeY))) * scaleX;
+      const y = (state.y + sizeY * Math.floor(state.step / (sizeX * sizeY))) * scaleY;
+      this.ctx.fillStyle = `hsl(${state.phase * 360}, 100%, 50%)`;
+      this.ctx.fillRect(x, y, scaleX, scaleY);
+    }
   }
 
-  // Method for hyperbolic projection (placeholder)
-  public hyperbolicProjection(data: any): any {
-    // Implementation of hyperbolic projection visualization
-    return;
+  // Hyperbolic projection: Map to hyperbolic plane
+  public hyperbolicProjection(trajectory: State[]) {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+
+    for (const state of trajectory) {
+      // Simple hyperbolic mapping
+      const r = Math.sqrt(state.x * state.x + state.y * state.y) + 1;
+      const theta = Math.atan2(state.y, state.x);
+      const x = centerX + (Math.log(r) * Math.cos(theta)) * 50;
+      const y = centerY + (Math.log(r) * Math.sin(theta)) * 50;
+
+      this.ctx.fillStyle = `hsl(${state.phase * 360}, 100%, 50%)`;
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, 2, 0, 2 * Math.PI);
+      this.ctx.fill();
+    }
   }
 
-  // Method for phase space representation (placeholder)
-  public phaseSpaceRepresentation(data: any): any {
-    // Implementation of phase space representation visualization
-    return;
+  // Phase space representation
+  public phaseSpaceRepresentation(trajectory: State[]) {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    // Plot position vs velocity
+    for (let i = 1; i < trajectory.length; i++) {
+      const prev = trajectory[i - 1];
+      const curr = trajectory[i];
+
+      const x1 = (prev.x / 10) * this.width; // Assume max 10
+      const y1 = (prev.vx / 10) * this.height;
+      const x2 = (curr.x / 10) * this.width;
+      const y2 = (curr.vx / 10) * this.height;
+
+      this.ctx.strokeStyle = `hsl(${curr.phase * 360}, 100%, 50%)`;
+      this.ctx.lineWidth = 1;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    }
   }
 }
 

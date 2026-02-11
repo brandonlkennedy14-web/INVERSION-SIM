@@ -3,7 +3,7 @@
 /**
  * Enhanced Anomaly Detection and Signature Generation
  */
-class AnomalyDetector {
+export class AnomalyDetector {
     private thresholds: number[];
 
     constructor(thresholds: number[]) {
