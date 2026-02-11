@@ -64,7 +64,7 @@ export class TopologyRenderer {
   }
 
   // Render the trajectory as a path with multi-color segments
-  public renderTrajectory(trajectory: State[]) {
+  public renderTrajectory(trajectory: State[], maxIndex?: number) {
     if (trajectory.length < 2) return;
 
     const first = trajectory[0];
@@ -84,6 +84,8 @@ export class TopologyRenderer {
       colors = ['hsl(0,100%,50%)', 'hsl(120,100%,50%)', 'hsl(240,100%,50%)', 'hsl(60,100%,50%)'];
     }
 
+    const effectiveMax = maxIndex ?? trajectory.length;
+
     for (let segment = 0; segment < 4; segment++) {
       const startIdx = segment * segmentLength;
       const endIdx = segment === 3 ? trajectory.length : (segment + 1) * segmentLength;
@@ -92,12 +94,12 @@ export class TopologyRenderer {
       this.ctx.lineWidth = 2;
       this.ctx.beginPath();
 
-      const startState = trajectory[startIdx];
-      if (startState) {
+      const startState = trajectory[Math.max(startIdx, 0)];
+      if (startState && startIdx < effectiveMax) {
         this.ctx.moveTo(startState.x * this.cellSize * this.zoomLevel + this.cellSize * this.zoomLevel / 2, startState.y * this.cellSize * this.zoomLevel + this.cellSize * this.zoomLevel / 2);
       }
 
-      for (let i = startIdx + 1; i < endIdx; i++) {
+      for (let i = startIdx + 1; i < Math.min(endIdx, effectiveMax); i++) {
         const state = trajectory[i];
         if (state) {
           this.ctx.lineTo(state.x * this.cellSize * this.zoomLevel + this.cellSize * this.zoomLevel / 2, state.y * this.cellSize * this.zoomLevel + this.cellSize * this.zoomLevel / 2);
@@ -105,6 +107,116 @@ export class TopologyRenderer {
       }
       this.ctx.stroke();
     }
+  }
+
+  public animateTrajectory(trajectory: State[], speed: number = 50, loop: boolean = true) {
+    let maxIndex = 0;
+    const animate = () => {
+      this.renderTrajectory(trajectory, maxIndex);
+      maxIndex += speed;
+      if (maxIndex >= trajectory.length) {
+        if (loop) {
+          maxIndex = 0;
+        } else {
+          return;
+        }
+      }
+      requestAnimationFrame(animate);
+    };
+    animate();
+  }
+
+  public animateToroidal(trajectory: State[], sizeX: number, sizeY: number, speed: number = 50) {
+    let maxIndex = 0;
+    const animate = () => {
+      this.ctx.clearRect(0, 0, this.width, this.height);
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillRect(0, 0, this.width, this.height);
+
+      const scaleX = this.width / (sizeX * 3);
+      const scaleY = this.height / (sizeY * 3);
+
+      for (let i = 0; i < Math.min(maxIndex, trajectory.length); i++) {
+        const state = trajectory[i];
+        const x = (state.x + sizeX * Math.floor(state.step / (sizeX * sizeY))) * scaleX;
+        const y = (state.y + sizeY * Math.floor(state.step / (sizeX * sizeY))) * scaleY;
+        this.ctx.fillStyle = `hsl(${state.phase * 360}, 100%, 50%)`;
+        this.ctx.fillRect(x, y, scaleX, scaleY);
+      }
+
+      maxIndex += speed;
+      if (maxIndex < trajectory.length) {
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
+  }
+
+  public animateHyperbolic(trajectory: State[], speed: number = 50) {
+    let maxIndex = 0;
+    const animate = () => {
+      this.ctx.clearRect(0, 0, this.width, this.height);
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillRect(0, 0, this.width, this.height);
+
+      const centerX = this.width / 2;
+      const centerY = this.height / 2;
+
+      for (let i = 0; i < Math.min(maxIndex, trajectory.length); i++) {
+        const state = trajectory[i];
+        const r = Math.sqrt(state.x * state.x + state.y * state.y) + 1;
+        const theta = Math.atan2(state.y, state.x);
+        const x = centerX + (Math.log(r) * Math.cos(theta)) * 50;
+        const y = centerY + (Math.log(r) * Math.sin(theta)) * 50;
+
+        this.ctx.fillStyle = `hsl(${state.phase * 360}, 100%, 50%)`;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 2, 0, 2 * Math.PI);
+        this.ctx.fill();
+      }
+
+      maxIndex += speed;
+      if (maxIndex >= trajectory.length) {
+        maxIndex = 0;
+      }
+      requestAnimationFrame(animate);
+    };
+    animate();
+  }
+
+  public animatePhaseSpace(trajectory: State[], speed: number = 50) {
+    let maxIndex = 0;
+    const animate = () => {
+      this.ctx.clearRect(0, 0, this.width, this.height);
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillRect(0, 0, this.width, this.height);
+
+      for (let i = 1; i < Math.min(maxIndex, trajectory.length); i++) {
+        const prev = trajectory[i - 1];
+        const curr = trajectory[i];
+
+        if (prev && curr) {
+          const x1 = (prev.x / 10) * this.width;
+          const y1 = (prev.vx / 10) * this.height;
+          const x2 = (curr.x / 10) * this.width;
+          const y2 = (curr.vx / 10) * this.height;
+
+          this.ctx.strokeStyle = `hsl(${curr.phase * 360}, 100%, 50%)`;
+          this.ctx.lineWidth = 1;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x1, y1);
+          this.ctx.lineTo(x2, y2);
+          this.ctx.stroke();
+        }
+      }
+
+      maxIndex += speed;
+      if (maxIndex >= trajectory.length) {
+        maxIndex = 0;
+      }
+      requestAnimationFrame(animate);
+    };
+    animate();
   }
 
   // Render events as markers

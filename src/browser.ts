@@ -22,6 +22,9 @@ class ThreeDRenderer {
   private renderer: THREE.WebGLRenderer;
   private container: HTMLElement;
   private zoomLevel: number = 1;
+  private trajectoryLine: THREE.Line | null = null;
+  private eventSpheres: THREE.Mesh[] = [];
+  private inversionCubes: THREE.Mesh[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -31,9 +34,16 @@ class ThreeDRenderer {
     this.renderer.setSize(800, 600);
     container.appendChild(this.renderer.domElement);
     this.camera.position.z = 10;
+
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    this.scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(1, 1, 1);
+    this.scene.add(directionalLight);
   }
 
-  render(result: any, cfg: RunConfig) {
+  render(result: any, cfg: RunConfig, maxIndex?: number) {
     this.scene.clear();
 
     // Add lights
@@ -43,16 +53,28 @@ class ThreeDRenderer {
     directionalLight.position.set(1, 1, 1);
     this.scene.add(directionalLight);
 
-    // Render trajectory as 3D line
-    const trajectoryGeometry = new THREE.BufferGeometry();
-    const positions = [];
-    for (const state of result.trajectory) {
-      positions.push(state.x, state.y, state.phase * 2);
+    const effectiveMax = maxIndex ?? result.trajectory.length;
+
+    // Render trajectory as 3D line with multi-color segments
+    const segmentLength = Math.floor(result.trajectory.length / 4);
+    const colors = [0xff0000, 0x0000ff, 0x00ff00, 0x800080]; // red, blue, green, purple
+
+    for (let segment = 0; segment < 4; segment++) {
+      const startIdx = segment * segmentLength;
+      const endIdx = segment === 3 ? result.trajectory.length : (segment + 1) * segmentLength;
+      const positions = [];
+      for (let i = startIdx; i < Math.min(endIdx, effectiveMax); i++) {
+        const state = result.trajectory[i];
+        positions.push(state.x, state.y, state.phase * 2);
+      }
+      if (positions.length > 0) {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const material = new THREE.LineBasicMaterial({ color: colors[segment] });
+        const line = new THREE.Line(geometry, material);
+        this.scene.add(line);
+      }
     }
-    trajectoryGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const trajectoryMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    const trajectory = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
-    this.scene.add(trajectory);
 
     // Render events as spheres
     for (const event of result.events) {
@@ -64,7 +86,7 @@ class ThreeDRenderer {
     }
 
     // Render inversions as cubes
-    for (const state of result.trajectory) {
+    for (const state of result.trajectory.slice(0, effectiveMax)) {
       if (state.inverted) {
         const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         const material = new THREE.MeshBasicMaterial({ color: 0x0000ff });
@@ -75,6 +97,18 @@ class ThreeDRenderer {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  animateTrajectory(result: any, cfg: RunConfig, speed: number = 50) {
+    let maxIndex = 0;
+    const animate = () => {
+      this.render(result, cfg, maxIndex);
+      maxIndex += speed;
+      if (maxIndex < result.trajectory.length) {
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
   }
 
   zoom(factor: number) {
@@ -99,26 +133,32 @@ class AbstractRenderer {
     container.appendChild(this.canvas);
   }
 
-  render(result: any, cfg: RunConfig) {
+  render(result: any, cfg: RunConfig, maxIndex?: number) {
     this.ctx.clearRect(0, 0, 800, 600);
     this.ctx.fillStyle = 'black';
     this.ctx.fillRect(0, 0, 800, 600);
 
-    // Abstract representation: phase space
-    const phasePoints = result.trajectory.map((state: any) => ({
-      x: (state.x / cfg.sizeX) * 800,
-      y: (state.y / cfg.sizeY) * 600,
-      phase: state.phase
-    }));
+    const effectiveMax = maxIndex ?? result.trajectory.length;
 
-    for (let i = 1; i < phasePoints.length; i++) {
-      const p1 = phasePoints[i - 1];
-      const p2 = phasePoints[i];
-      this.ctx.strokeStyle = `hsl(${p1.phase * 360}, 100%, 50%)`;
+    // Abstract representation: phase space with multi-color segments
+    const segmentLength = Math.floor(result.trajectory.length / 4);
+    const colors = ['red', 'blue', 'green', 'purple'];
+
+    for (let segment = 0; segment < 4; segment++) {
+      const startIdx = segment * segmentLength;
+      const endIdx = segment === 3 ? result.trajectory.length : (segment + 1) * segmentLength;
+      this.ctx.strokeStyle = colors[segment]!;
       this.ctx.lineWidth = 2;
       this.ctx.beginPath();
-      this.ctx.moveTo(p1.x, p1.y);
-      this.ctx.lineTo(p2.x, p2.y);
+
+      for (let i = Math.max(startIdx + 1, 1); i < Math.min(endIdx, effectiveMax); i++) {
+        const p1 = result.trajectory[i - 1];
+        const p2 = result.trajectory[i];
+        if (i === Math.max(startIdx + 1, 1)) {
+          this.ctx.moveTo((p1.x / cfg.sizeX) * 800, (p1.y / cfg.sizeY) * 600);
+        }
+        this.ctx.lineTo((p2.x / cfg.sizeX) * 800, (p2.y / cfg.sizeY) * 600);
+      }
       this.ctx.stroke();
     }
 
@@ -129,6 +169,18 @@ class AbstractRenderer {
       this.ctx.arc((event.x / cfg.sizeX) * 800, (event.y / cfg.sizeY) * 600, 10, 0, 2 * Math.PI);
       this.ctx.fill();
     }
+  }
+
+  animateTrajectory(result: any, cfg: RunConfig, speed: number = 50) {
+    let maxIndex = 0;
+    const animate = () => {
+      this.render(result, cfg, maxIndex);
+      maxIndex += speed;
+      if (maxIndex < result.trajectory.length) {
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
   }
 
   zoom(factor: number) {
@@ -143,16 +195,16 @@ function getConfigFromUI(): RunConfig {
   const inversionSchedule = [];
 
   if ((document.getElementById('inversionGEOM') as HTMLInputElement).checked) {
-    inversionSchedule.push({ step: Math.floor(steps * 0.20), kind: "GEOM" });
+    inversionSchedule.push({ step: Math.floor(steps * 0.20), kind: "GEOM" as InversionKind });
   }
   if ((document.getElementById('inversionSPHERE') as HTMLInputElement).checked) {
-    inversionSchedule.push({ step: Math.floor(steps * 0.40), kind: "SPHERE" });
+    inversionSchedule.push({ step: Math.floor(steps * 0.40), kind: "SPHERE" as InversionKind });
   }
   if ((document.getElementById('inversionOBSERVER') as HTMLInputElement).checked) {
-    inversionSchedule.push({ step: Math.floor(steps * 0.60), kind: "OBSERVER" });
+    inversionSchedule.push({ step: Math.floor(steps * 0.60), kind: "OBSERVER" as InversionKind });
   }
   if ((document.getElementById('inversionCAUSAL') as HTMLInputElement).checked) {
-    inversionSchedule.push({ step: Math.floor(steps * 0.80), kind: "CAUSAL" });
+    inversionSchedule.push({ step: Math.floor(steps * 0.80), kind: "CAUSAL" as InversionKind });
   }
 
   return {
@@ -203,36 +255,36 @@ function switchToMode(mode: string) {
     topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     topologyRenderer.setColorMode(colorMode);
     topologyRenderer.renderGrid(currentResult.trajectory, currentCfg.sizeX, currentCfg.sizeY);
-    topologyRenderer.renderTrajectory(currentResult.trajectory);
+    topologyRenderer.animateTrajectory(currentResult.trajectory);
     topologyRenderer.renderEvents(currentResult.events);
     topologyRenderer.renderInversions(currentResult.trajectory);
     currentRenderer = topologyRenderer;
   } else if (mode === '3D') {
     currentRenderer = new ThreeDRenderer(visualization);
-    (currentRenderer as ThreeDRenderer).render(currentResult, currentCfg);
+    (currentRenderer as ThreeDRenderer).animateTrajectory(currentResult, currentCfg);
   } else if (mode === 'Abstract') {
     currentRenderer = new AbstractRenderer(visualization);
-    (currentRenderer as AbstractRenderer).render(currentResult, currentCfg);
+    (currentRenderer as AbstractRenderer).animateTrajectory(currentResult, currentCfg);
   } else if (mode === 'Toroidal') {
     if (!topologyRenderer) {
       topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     }
     topologyRenderer.setColorMode(colorMode);
-    topologyRenderer.toroidalUnwinding(currentResult.trajectory, currentCfg.sizeX, currentCfg.sizeY);
+    topologyRenderer.animateToroidal(currentResult.trajectory, currentCfg.sizeX, currentCfg.sizeY);
     currentRenderer = topologyRenderer;
   } else if (mode === 'Hyperbolic') {
     if (!topologyRenderer) {
       topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     }
     topologyRenderer.setColorMode(colorMode);
-    topologyRenderer.hyperbolicProjection(currentResult.trajectory);
+    topologyRenderer.animateHyperbolic(currentResult.trajectory);
     currentRenderer = topologyRenderer;
   } else if (mode === 'PhaseSpace') {
     if (!topologyRenderer) {
       topologyRenderer = new TopologyRenderer(visualization, 800, 600);
     }
     topologyRenderer.setColorMode(colorMode);
-    topologyRenderer.phaseSpaceRepresentation(currentResult.trajectory);
+    topologyRenderer.animatePhaseSpace(currentResult.trajectory);
     currentRenderer = topologyRenderer;
   }
 }
@@ -262,6 +314,7 @@ window.addEventListener('load', () => {
   const variantSquareStickyBtn = document.getElementById('variantSquareSticky');
   const zoomInBtn = document.getElementById('zoomIn');
   const zoomOutBtn = document.getElementById('zoomOut');
+  const colorModeSelect = document.getElementById('colorMode') as HTMLSelectElement;
 
   if (runSimBtn) runSimBtn.addEventListener('click', runSimulation);
   if (mode2DBtn) mode2DBtn.addEventListener('click', () => switchToMode('2D'));
@@ -276,6 +329,41 @@ window.addEventListener('load', () => {
   if (variantSquareStickyBtn) variantSquareStickyBtn.addEventListener('click', () => { currentVariant = SquareStickyReflect; runSimulation(); });
   if (zoomInBtn) zoomInBtn.addEventListener('click', () => zoom(1.2));
   if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => zoom(0.8));
+
+  // Add listeners for config inputs to update on change
+  const configInputs = ['sizeX', 'sizeY', 'x0', 'y0', 'vx0', 'vy0', 'steps', 'reducedPrimeGrowth', 'inversionGEOM', 'inversionSPHERE', 'inversionOBSERVER', 'inversionCAUSAL'];
+  configInputs.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('input', runSimulation);
+      element.addEventListener('change', runSimulation);
+    }
+  });
+
+  // Add listener for color mode
+  if (colorModeSelect) {
+    colorModeSelect.addEventListener('change', () => {
+      const colorMode = getColorModeFromUI();
+      if (topologyRenderer) {
+        topologyRenderer.setColorMode(colorMode);
+        // Re-render current view if it's 2D or advanced modes
+        if (currentRenderer === topologyRenderer) {
+          // Determine current mode and re-render
+          // For simplicity, re-run simulation to update
+          runSimulation();
+        }
+      }
+    });
+  }
+
+  // Add listener for animation speed
+  const animationSpeedInput = document.getElementById('animationSpeed') as HTMLInputElement;
+  if (animationSpeedInput) {
+    animationSpeedInput.addEventListener('input', () => {
+      // Re-run simulation to apply new speed
+      runSimulation();
+    });
+  }
 
   const runBotsBtn = document.getElementById('runBots');
   if (runBotsBtn) runBotsBtn.addEventListener('click', runBotFleet);
