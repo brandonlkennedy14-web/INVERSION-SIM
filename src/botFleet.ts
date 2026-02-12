@@ -94,8 +94,8 @@ class Bot {
       violations.push("Phase out of bounds");
       suggestions.push("Normalize phase calculation");
     }
-    if (this.currentConfig!.sizeX < 5 || this.currentConfig!.sizeX > 20 ||
-        this.currentConfig!.sizeY < 5 || this.currentConfig!.sizeY > 20) {
+    if (!this.currentConfig || this.currentConfig.sizeX < 5 || this.currentConfig.sizeX > 20 ||
+        this.currentConfig.sizeY < 5 || this.currentConfig.sizeY > 20) {
       violations.push("Grid size unreasonable");
       suggestions.push("Set sizeX and sizeY between 5 and 20");
     }
@@ -104,7 +104,9 @@ class Bot {
     const message = valid ? "All constraints satisfied" : `Violations: ${violations.join(", ")}`;
 
     const feedback: ConstraintFeedback = { valid, message, suggestions };
-    this.history.push({ config: this.currentConfig!, feedback });
+    if (this.currentConfig) {
+      this.history.push({ config: this.currentConfig, feedback });
+    }
     return feedback;
   }
 
@@ -142,11 +144,14 @@ export class BotFleet {
   private anomalyDetector: AnomalyDetector;
   private categories: Map<string, any[]> = new Map();
   private runCounter: number = 0;
+  private totalSimulations: number = 0;
   private intervalId: NodeJS.Timeout | null = null;
   private blockchainManager: BlockchainManager;
   private logicChangeLog: string[] = [];
+  private isBrowser: boolean;
 
-  constructor() {
+  constructor(isBrowser: boolean = false) {
+    this.isBrowser = isBrowser;
     // Create 8 bots, split into 2 groups using braided logic (alternating)
     for (let i = 0; i < 8; i++) {
       const group = i % 2; // 0 or 1
@@ -157,6 +162,9 @@ export class BotFleet {
     this.anomalyDetector = new AnomalyDetector();
     this.blockchainManager = new BlockchainManager();
     this.initializeCategories();
+    if (this.isBrowser) {
+      this.loadFromLocalStorage();
+    }
   }
 
   private initializeCategories(): void {
@@ -201,6 +209,14 @@ export class BotFleet {
       bot.getHistory().push({ config, feedback, anomalies });
 
       bot.iterate(feedback);
+
+      // Increment total simulations
+      this.totalSimulations++;
+    }
+
+    // Check for auto upload every 5000 simulations
+    if (this.totalSimulations % 5000 === 0) {
+      this.uploadSimulationSummaryToBlockchain();
     }
   }
 
@@ -323,6 +339,9 @@ export class BotFleet {
         this.logicChangeLog.push(`Varied configurations for ${configChanges} bots by alternating multipliers and randomizing mods.`);
       }
     }
+
+    // Log current actions
+    this.logicChangeLog.push(`Bot fleet iteration completed. Bots coordinated via blockchain. Anomalies detected and categorized.`);
   }
 
   // Get results from a group
@@ -343,11 +362,32 @@ export class BotFleet {
     return this.categories;
   }
 
+  // Get logic change log
+  getLogicChangeLog(): string[] {
+    return this.logicChangeLog;
+  }
+
+  // Upload simulation summary to blockchain for auto deleter bots
+  private async uploadSimulationSummaryToBlockchain(): Promise<void> {
+    const summary = {
+      totalSimulations: this.totalSimulations,
+      totalRuns: this.runCounter,
+      categories: Object.fromEntries(this.categories),
+      timestamp: new Date().toISOString(),
+      message: "Auto upload every 5000 simulations for deleter bots"
+    };
+
+    // Post to a special category for deleter bots
+    await this.blockchainManager.postAnomaly('Simulation Summary', summary);
+    this.logicChangeLog.push(`Uploaded simulation summary to blockchain: ${this.totalSimulations} total simulations.`);
+  }
+
   // Summarize current logic of the bots
   getLogicSummary(): string {
     let summary = "Bot Fleet Logic Summary:\n\n";
     summary += `Total Bots: ${this.bots.length}\n`;
-    summary += `Groups: 2 (Braided Logic: Alternating Assignment)\n\n`;
+    summary += `Groups: 2 (Braided Logic: Alternating Assignment)\n`;
+    summary += `Total Simulations Run: ${this.totalSimulations}\n\n`;
 
     summary += "Bot Logic:\n";
     summary += "- Each bot generates random configurations autonomously.\n";
@@ -361,6 +401,7 @@ export class BotFleet {
     summary += "- Continuous running: Every 5 seconds, run iteration, sort data, delete non-top runs, refine logic.\n";
     summary += "- Anomaly Detection: Detect from simulation results, categories: Event Density, Phase Anomaly, Spiral Phase Dynamics.\n";
     summary += "- Blockchain Integration: Post anomalies to smart contract, retrieve top 1000 per category.\n";
+    summary += "- Auto Upload: Every 5000 simulations, upload summary to blockchain for auto deleter bots.\n";
     summary += "- Storage Management: Keep only top 1000 runs per category locally, delete others.\n";
     summary += "- Logic Refinement: Analyze Spiral Phase Dynamics to add custom criteria (e.g., spacing bands), vary configs.\n\n";
 

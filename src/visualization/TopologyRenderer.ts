@@ -93,6 +93,15 @@ export class TopologyRenderer {
       colors = ['gray', 'darkgray', 'lightgray', 'gray'];
     } else if (this.colorMode === 'rainbow') {
       colors = ['hsl(0,100%,50%)', 'hsl(120,100%,50%)', 'hsl(240,100%,50%)', 'hsl(60,100%,50%)'];
+    } else if (this.colorMode === 'benham') {
+      // Benham's top illusion: alternating colors that create motion illusion
+      colors = ['hsl(0,100%,50%)', 'hsl(180,100%,50%)', 'hsl(0,100%,50%)', 'hsl(180,100%,50%)'];
+    } else if (this.colorMode === 'contours') {
+      // Illusory contours: colors that suggest shapes not present
+      colors = ['hsl(240,100%,50%)', 'hsl(60,100%,50%)', 'hsl(240,100%,50%)', 'hsl(60,100%,50%)'];
+    } else if (this.colorMode === 'constancy') {
+      // Color constancy: colors that appear constant despite changes
+      colors = ['hsl(120,50%,50%)', 'hsl(240,50%,50%)', 'hsl(120,50%,50%)', 'hsl(240,50%,50%)'];
     }
 
     const effectiveMax = maxIndex ?? trajectory.length;

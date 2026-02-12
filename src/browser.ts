@@ -190,7 +190,7 @@ class AbstractRenderer {
 }
 
 function getConfigFromUI(): RunConfig {
-  const reducedPrimeGrowth = (document.getElementById('reducedPrimeGrowth') as HTMLInputElement).checked;
+  const primeGrowthRatio = parseFloat((document.getElementById('primeGrowthRatio') as HTMLInputElement).value);
   const steps = parseInt((document.getElementById('steps') as HTMLInputElement).value);
   const inversionSchedule = [];
 
@@ -207,6 +207,10 @@ function getConfigFromUI(): RunConfig {
     inversionSchedule.push({ step: Math.floor(steps * 0.80), kind: "CAUSAL" as InversionKind });
   }
 
+  // Exponential growth: assume base multiplier is 7, adjusted by ratio
+  const baseMultiplier = 7;
+  const multiplier = baseMultiplier * Math.pow(primeGrowthRatio, 0.5); // Square root for smoother scaling
+
   return {
     sizeX: parseInt((document.getElementById('sizeX') as HTMLInputElement).value),
     sizeY: parseInt((document.getElementById('sizeY') as HTMLInputElement).value),
@@ -216,7 +220,7 @@ function getConfigFromUI(): RunConfig {
     vy0: parseInt((document.getElementById('vy0') as HTMLInputElement).value),
     phase0: 0,
     steps: steps,
-    multiplier: reducedPrimeGrowth ? 3 : 7,
+    multiplier: multiplier,
     mod: 1000003,
     inversionSchedule: inversionSchedule,
   };
@@ -331,7 +335,7 @@ window.addEventListener('load', () => {
   if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => zoom(0.8));
 
   // Add listeners for config inputs to update on change
-  const configInputs = ['sizeX', 'sizeY', 'x0', 'y0', 'vx0', 'vy0', 'steps', 'reducedPrimeGrowth', 'inversionGEOM', 'inversionSPHERE', 'inversionOBSERVER', 'inversionCAUSAL'];
+  const configInputs = ['sizeX', 'sizeY', 'x0', 'y0', 'vx0', 'vy0', 'steps', 'primeGrowthRatio', 'inversionGEOM', 'inversionSPHERE', 'inversionOBSERVER', 'inversionCAUSAL'];
   configInputs.forEach(id => {
     const element = document.getElementById(id);
     if (element) {
@@ -404,10 +408,16 @@ function startContinuousBotFleet() {
     botFleet = new BotFleet();
   }
   botFleet.startContinuousRunning(5000); // Run every 5 seconds
-  // Auto-update logic summary every 5 seconds
+  // Auto-update logic summary and live updates every 5 seconds
   setInterval(() => {
     displayBotLogicSummary();
+    updateBotLog();
+    updateCoordinationGraph();
   }, 5000);
+  // Initial display
+  displayBotLogicSummary();
+  updateBotLog();
+  updateCoordinationGraph();
   alert("Bot fleet started continuously. Check console for updates.");
 }
 
@@ -476,4 +486,63 @@ function displayBotLogicSummary() {
   } else {
     alert(summary);
   }
+}
+
+function updateBotLog() {
+  if (!botFleet) return;
+  const log = botFleet.getLogicChangeLog();
+  const logList = document.getElementById('botLogList');
+  if (logList) {
+    logList.innerHTML = '';
+    log.slice(-10).forEach(entry => {
+      const li = document.createElement('li');
+      li.textContent = `${new Date().toLocaleTimeString()}: ${entry}`;
+      logList.appendChild(li);
+    });
+  }
+}
+
+function updateCoordinationGraph() {
+  if (!botFleet) return;
+  const canvas = document.getElementById('coordinationCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const bots = botFleet.getBots();
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = 60;
+
+  bots.forEach((bot, index) => {
+    const angle = (index / bots.length) * 2 * Math.PI;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    // Color based on group
+    ctx.fillStyle = bot.getGroup() === 0 ? '#00d4ff' : '#ff6b6b';
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Draw connections to other bots in same group
+    bots.forEach((otherBot, otherIndex) => {
+      if (otherBot.getGroup() === bot.getGroup() && otherIndex !== index) {
+        const otherAngle = (otherIndex / bots.length) * 2 * Math.PI;
+        const otherX = centerX + Math.cos(otherAngle) * radius;
+        const otherY = centerY + Math.sin(otherAngle) * radius;
+
+        ctx.strokeStyle = bot.getGroup() === 0 ? 'rgba(0, 212, 255, 0.5)' : 'rgba(255, 107, 107, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(otherX, otherY);
+        ctx.stroke();
+      }
+    });
+  });
 }
