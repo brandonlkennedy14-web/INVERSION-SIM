@@ -316,6 +316,7 @@ interface AutorunnerNotepad {
   direction: { dx: number; dy: number };
   trajectory: { x: number; y: number }[]; // History of positions over cycles
   group: number; // 1, 2, or 3
+  searchedConfigs: Set<string>; // Memory of searched configs
 }
 
 const NUM_AUTORUNNERS = 8;
@@ -350,6 +351,7 @@ function initializeNotepad(id: number): AutorunnerNotepad {
     direction: { dx: 0, dy: 0 },
     trajectory: [{ x: baseCfg.multiplier, y: baseCfg.sizeX }],
     group,
+    searchedConfigs: new Set<string>(),
   };
 }
 
@@ -357,6 +359,14 @@ function loadNotepad(file: string): AutorunnerNotepad {
   if (fs.existsSync(file)) {
     try {
       const data = JSON.parse(fs.readFileSync(file, "utf8"));
+      // Ensure searchedConfigs is a Set
+      if (!data.searchedConfigs) {
+        data.searchedConfigs = new Set<string>();
+      } else if (Array.isArray(data.searchedConfigs)) {
+        data.searchedConfigs = new Set(data.searchedConfigs);
+      } else {
+        data.searchedConfigs = new Set<string>();
+      }
       return data;
     } catch (error) {
       console.error(`Error loading ${file}:`, error);
@@ -368,7 +378,8 @@ function loadNotepad(file: string): AutorunnerNotepad {
 }
 
 function saveNotepad(file: string, notepad: AutorunnerNotepad) {
-  fs.writeFileSync(file, JSON.stringify(notepad, null, 2));
+  const data = { ...notepad, searchedConfigs: Array.from(notepad.searchedConfigs) };
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
 // ---------- Main loop for 8 Autorunners ----------
@@ -388,6 +399,18 @@ async function runBackgroundSimulations() {
       for (let i = 0; i < NUM_AUTORUNNERS; i++) {
         const notepadFile = NOTEPAD_FILES[i];
         let notepad = loadNotepad(notepadFile);
+
+        // Check memory to avoid repeating configs
+        const configKey = `${notepad.cfg.multiplier}_${notepad.cfg.sizeX}`;
+        if (notepad.searchedConfigs.has(configKey)) {
+          // Add random exploration to find new areas
+          notepad.cfg.multiplier += (Math.random() - 0.5) * 2;
+          notepad.cfg.sizeX += (Math.random() - 0.5) * 2;
+          notepad.cfg.multiplier = Math.max(1, Math.min(20, notepad.cfg.multiplier));
+          notepad.cfg.sizeX = Math.max(5, Math.min(15, notepad.cfg.sizeX));
+        } else {
+          notepad.searchedConfigs.add(configKey);
+        }
 
         console.log(`Autorunner ${notepad.id}: multiplier ${notepad.cfg.multiplier}, size ${notepad.cfg.sizeX}x${notepad.cfg.sizeY}`);
 
@@ -460,7 +483,7 @@ async function runBackgroundSimulations() {
 
         // Auto-commit instantly after each autorunner run
         try {
-          const { execSync } = require('child_process');
+          const { execSync } = await import('child_process');
           execSync('git add .', { cwd: BASE_DIR });
           execSync(`git commit -m "Auto-commit autorunner ${notepad.id} run data"`, { cwd: BASE_DIR });
           execSync('git push', { cwd: BASE_DIR });
@@ -469,6 +492,11 @@ async function runBackgroundSimulations() {
           console.error('Git commit/push failed for autorunner:', error);
         }
       }
+
+      // Compute collective averages
+      const avgRandomness = allAnomalies.reduce((sum, a) => sum + a.randomness, 0) / allAnomalies.length;
+      const avgStructure = allAnomalies.reduce((sum, a) => sum + a.structure, 0) / allAnomalies.length;
+      const avgReemergence = allAnomalies.reduce((sum, a) => sum + a.reemergence, 0) / allAnomalies.length;
 
       // Compute group averages and directions
       const groupAnomalies: { [group: number]: any[] } = { 1: [], 2: [], 3: [] };
@@ -484,11 +512,11 @@ async function runBackgroundSimulations() {
       for (const group of [1, 2, 3]) {
         const groupAnoms = groupAnomalies[group];
         if (groupAnoms.length === 0) continue;
-        const avgRandomness = groupAnoms.reduce((sum, a) => sum + a.randomness, 0) / groupAnoms.length;
-        const avgStructure = groupAnoms.reduce((sum, a) => sum + a.structure, 0) / groupAnoms.length;
-        const avgReemergence = groupAnoms.reduce((sum, a) => sum + a.reemergence, 0) / groupAnoms.length;
+        const groupAvgRandomness = groupAnoms.reduce((sum, a) => sum + a.randomness, 0) / groupAnoms.length;
+        const groupAvgStructure = groupAnoms.reduce((sum, a) => sum + a.structure, 0) / groupAnoms.length;
+        const groupAvgReemergence = groupAnoms.reduce((sum, a) => sum + a.reemergence, 0) / groupAnoms.length;
 
-        console.log(`Group ${group} averages: randomness=${avgRandomness.toFixed(4)}, structure=${avgStructure.toFixed(4)}, reemergence=${avgReemergence}`);
+        console.log(`Group ${group} averages: randomness=${groupAvgRandomness.toFixed(4)}, structure=${groupAvgStructure.toFixed(4)}, reemergence=${groupAvgReemergence}`);
 
         let dx = 0;
         let dy = 0;
@@ -526,14 +554,16 @@ async function runBackgroundSimulations() {
         console.log(`Group ${group} direction: dx=${dx}, dy=${dy}`);
       }
 
-      // Apply global direction to each runner and update notepads
+      // Apply group-specific direction to each runner and update notepads
       for (let i = 0; i < NUM_AUTORUNNERS; i++) {
         const notepadFile = NOTEPAD_FILES[i];
         let notepad = loadNotepad(notepadFile);
 
+        const groupDir = groupDirections[notepad.group] || { dx: 0, dy: 0 };
+
         // Apply direction to cfg
-        notepad.cfg.multiplier = Math.max(1, Math.min(20, notepad.cfg.multiplier + globalDx));
-        notepad.cfg.sizeX = Math.max(5, Math.min(15, notepad.cfg.sizeX + globalDy));
+        notepad.cfg.multiplier = Math.max(1, Math.min(20, notepad.cfg.multiplier + groupDir.dx));
+        notepad.cfg.sizeX = Math.max(5, Math.min(15, notepad.cfg.sizeX + groupDir.dy));
         notepad.cfg.sizeY = notepad.cfg.sizeX; // Keep square for simplicity
 
         // Recalculate schedule
@@ -545,7 +575,7 @@ async function runBackgroundSimulations() {
         ];
 
         // Set direction vector
-        notepad.direction = { dx: globalDx, dy: globalDy };
+        notepad.direction = groupDir;
 
         // Update position
         notepad.position.x = notepad.cfg.multiplier;
@@ -576,6 +606,11 @@ async function runBackgroundSimulations() {
           trajectory: notepad.trajectory,
         });
       }
+
+      // Compute collective averages
+      const avgRandomness = allAnomalies.reduce((sum, a) => sum + a.randomness, 0) / allAnomalies.length;
+      const avgStructure = allAnomalies.reduce((sum, a) => sum + a.structure, 0) / allAnomalies.length;
+      const avgReemergence = allAnomalies.reduce((sum, a) => sum + a.reemergence, 0) / allAnomalies.length;
 
       // Broadcast cycle summary
       broadcast({

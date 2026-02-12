@@ -9,6 +9,15 @@ import type { RunConfig, InversionKind } from './types.js';
 import BotFleet from './botFleet.js';
 import * as THREE from 'three';
 
+// Global variables
+let currentCfg: RunConfig;
+let currentResult: any;
+let currentVariant: any = SquareInversionReflect;
+let topologyRenderer: TopologyRenderer | null = null;
+let currentRenderer: any = null;
+let ws: WebSocket;
+let botFleet: BotFleet | null = null;
+
 
 class ThreeDRenderer {
   private scene: THREE.Scene;
@@ -186,11 +195,39 @@ class AbstractRenderer {
 }
 
 function getConfigFromUI(): RunConfig {
-  const sizeRatio = parseFloat((document.getElementById('sizeRatio') as HTMLInputElement).value);
-  const multiplierRatio = parseFloat((document.getElementById('multiplierRatio') as HTMLInputElement).value);
-  const stepRatio = parseFloat((document.getElementById('stepRatio') as HTMLInputElement).value);
-  const baseSize = 10;
-  const sizeX = Math.round(sizeRatio * baseSize);
+  const sizeX = parseInt((document.getElementById('sizeX') as HTMLInputElement).value) || 5;
+  const sizeY = parseInt((document.getElementById('sizeY') as HTMLInputElement).value) || 7;
+  const x0 = parseFloat((document.getElementById('x0') as HTMLInputElement).value) || 1;
+  const y0 = parseFloat((document.getElementById('y0') as HTMLInputElement).value) || 1;
+  const vx0 = parseFloat((document.getElementById('vx0') as HTMLInputElement).value) || 1;
+  const vy0 = parseFloat((document.getElementById('vy0') as HTMLInputElement).value) || 1;
+  const steps = parseInt((document.getElementById('steps') as HTMLInputElement).value) || 200003;
+  const multiplier = parseInt((document.getElementById('multiplier') as HTMLInputElement)?.value) || 7; // Assuming there's a multiplier input, else default
+  const inversionGEOM = (document.getElementById('inversionGEOM') as HTMLInputElement).checked;
+  const inversionSPHERE = (document.getElementById('inversionSPHERE') as HTMLInputElement).checked;
+  const inversionOBSERVER = (document.getElementById('inversionOBSERVER') as HTMLInputElement).checked;
+  const inversionCAUSAL = (document.getElementById('inversionCAUSAL') as HTMLInputElement).checked;
+
+  const inversionSchedule: { step: number; kind: InversionKind }[] = [];
+  if (inversionGEOM) inversionSchedule.push({ step: Math.floor(steps * 0.20), kind: "GEOM" });
+  if (inversionSPHERE) inversionSchedule.push({ step: Math.floor(steps * 0.40), kind: "SPHERE" });
+  if (inversionOBSERVER) inversionSchedule.push({ step: Math.floor(steps * 0.60), kind: "OBSERVER" });
+  if (inversionCAUSAL) inversionSchedule.push({ step: Math.floor(steps * 0.80), kind: "CAUSAL" });
+
+  return {
+    sizeX,
+    sizeY,
+    x0,
+    y0,
+    vx0,
+    vy0,
+    phase0: 0,
+    steps,
+    multiplier,
+    mod: 1000003,
+    inversionSchedule,
+  };
+}
 
 function getColorModeFromUI(): string {
   const colorModeSelect = document.getElementById('colorMode') as HTMLSelectElement;
@@ -269,6 +306,9 @@ function zoom(factor: number) {
   }
 }
 
+// Autorunner data storage
+let autorunners: Map<number, any> = new Map();
+
 // WebSocket connection
 function connectWebSocket() {
   ws = new WebSocket('ws://localhost:8080');
@@ -280,6 +320,24 @@ function connectWebSocket() {
     if (data.type === 'runUpdate') {
       updateRunCount(data.runCount);
       updateAnomaliesTable(data.anomalies, data.logEntry, data.topK);
+    } else if (data.type === 'autorunnerUpdate') {
+      // Update individual autorunner data
+      autorunners.set(data.autorunnerId, {
+        id: data.autorunnerId,
+        position: data.position,
+        direction: data.direction,
+        anomalies: data.anomalies,
+        trajectory: data.trajectory,
+        group: data.group || 1 // Default group if not provided
+      });
+      renderAutorunnerMap();
+    } else if (data.type === 'cycleUpdate') {
+      // Update cycle count and collective data
+      updateCycleCount(data.cycleCount);
+      updateCollectiveAnomalies(data.collectiveAnomalies);
+      updateTopKTables(data.topK);
+      updateGroupSummaries(data.runnerData);
+      renderAutorunnerMap();
     }
   };
   ws.onclose = () => {
@@ -298,72 +356,193 @@ function updateRunCount(count: number) {
   }
 }
 
+function updateCycleCount(count: number) {
+  const cycleCountElement = document.getElementById('cycleCount');
+  if (cycleCountElement) {
+    cycleCountElement.textContent = count.toString();
+  } else {
+    // Add to status if not exists
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+      statusElement.innerHTML = `Background simulations running... Exploring quantum realities. Cycle ${count}, <span id="runCount">0</span> runs completed.`;
+    }
+  }
+}
+
+function updateCollectiveAnomalies(anomalies: any) {
+  // Update a collective anomalies display if exists, or log to console
+  console.log('Collective anomalies:', anomalies);
+}
+
+function updateTopKTables(topK: any) {
+  // Reuse existing updateAnomaliesTable logic
+  updateAnomaliesTable(null, null, topK);
+}
+
+function updateGroupSummaries(runnerData: any[]) {
+  // Update group summaries in UI if exists
+  console.log('Group summaries:', runnerData);
+}
+
+function renderAutorunnerMap() {
+  const canvas = document.getElementById('mapCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw grid: x-axis multiplier 1-20, y-axis sizeX 5-15
+  const gridWidth = canvas.width;
+  const gridHeight = canvas.height;
+  const xMin = 1, xMax = 20, yMin = 5, yMax = 15;
+  const xScale = gridWidth / (xMax - xMin);
+  const yScale = gridHeight / (yMax - yMin);
+
+  // Draw grid lines
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  for (let x = xMin; x <= xMax; x++) {
+    const px = (x - xMin) * xScale;
+    ctx.beginPath();
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, gridHeight);
+    ctx.stroke();
+  }
+  for (let y = yMin; y <= yMax; y++) {
+    const py = gridHeight - (y - yMin) * yScale;
+    ctx.beginPath();
+    ctx.moveTo(0, py);
+    ctx.lineTo(gridWidth, py);
+    ctx.stroke();
+  }
+
+  // Group colors
+  const groupColors = {
+    1: 'blue',
+    2: 'red',
+    3: 'green'
+  };
+
+  // Plot autorunners as Snake-like segments
+  autorunners.forEach((autorunner: any) => {
+    if (autorunner.trajectory && autorunner.trajectory.length > 0) {
+      const color = groupColors[autorunner.group as keyof typeof groupColors] || 'white';
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+
+      // Draw segments like Snake: head larger, body segments smaller
+      const maxSegments = 5; // Show last 5 positions as segments
+      const segmentSize = 8; // Head size
+      const segmentShrink = 1.5; // Each segment smaller
+
+      for (let i = Math.max(0, autorunner.trajectory.length - maxSegments); i < autorunner.trajectory.length; i++) {
+        const point = autorunner.trajectory[i];
+        const px = (point.x - xMin) * xScale;
+        const py = gridHeight - (point.y - yMin) * yScale;
+        const size = segmentSize / Math.pow(segmentShrink, autorunner.trajectory.length - 1 - i);
+
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Connect segments with lines
+        if (i > Math.max(0, autorunner.trajectory.length - maxSegments)) {
+          const prevPoint = autorunner.trajectory[i - 1];
+          const prevPx = (prevPoint.x - xMin) * xScale;
+          const prevPy = gridHeight - (prevPoint.y - yMin) * yScale;
+
+          // Determine line style: solid for main path, dashed for deviations
+          const dx = point.x - prevPoint.x;
+          const dy = point.y - prevPoint.y;
+          const isMainPath = dy > 0; // Increasing sizeX
+          const isDeviation = dx < 0; // Decreasing multiplier
+
+          if (isMainPath) {
+            ctx.setLineDash([]);
+          } else if (isDeviation) {
+            ctx.setLineDash([5, 5]);
+          } else {
+            ctx.setLineDash([]);
+          }
+
+          ctx.lineWidth = size / 2;
+          ctx.beginPath();
+          ctx.moveTo(prevPx, prevPy);
+          ctx.lineTo(px, py);
+          ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]); // Reset
+    }
+  });
+
+  // Add labels
+  ctx.fillStyle = 'white';
+  ctx.font = '12px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Multiplier (1-20)', gridWidth / 2, gridHeight - 5);
+  ctx.save();
+  ctx.translate(15, gridHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('SizeX (5-15)', 0, 0);
+  ctx.restore();
+}
+
 function updateAnomaliesTable(anomalies: any, logEntry: any, topK?: any) {
   if (topK) {
-    // Update randomness table
-    const randomnessTableBody = document.querySelector('#randomnessTable tbody');
-    if (randomnessTableBody) {
-      randomnessTableBody.innerHTML = '';
-      topK.randomness.forEach((entry: any, index: number) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${entry.run}</td>
-          <td>${entry.anomalies.randomness.toFixed(4)}</td>
-          <td>${entry.cfg.multiplier}</td>
-          <td>${entry.cfg.sizeX}x${entry.cfg.sizeY}</td>
-        `;
-        randomnessTableBody.appendChild(row);
-      });
-    }
+    // Define categories: Structure, Random (Randomness), Robust (Reemergence), Space/Event Density (event_density)
+    const categories = [
+      { key: 'structure', name: 'Structure', type: 'top' },
+      { key: 'randomness', name: 'Random', type: 'top' },
+      { key: 'reemergence', name: 'Robust/Reemergence', type: 'top' },
+      { key: 'event_density', name: 'Space/Event Density', type: 'top' },
+      { key: 'structure', name: 'Structure', type: 'least' },
+      { key: 'randomness', name: 'Random', type: 'least' },
+      { key: 'reemergence', name: 'Robust/Reemergence', type: 'least' },
+      { key: 'event_density', name: 'Space/Event Density', type: 'least' }
+    ];
 
-    // Update structure table
-    const structureTableBody = document.querySelector('#structureTable tbody');
-    if (structureTableBody) {
-      structureTableBody.innerHTML = '';
-      topK.structure.forEach((entry: any, index: number) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${entry.run}</td>
-          <td>${entry.anomalies.structure.toFixed(4)}</td>
-          <td>${entry.cfg.multiplier}</td>
-          <td>${entry.cfg.sizeX}x${entry.cfg.sizeY}</td>
-        `;
-        structureTableBody.appendChild(row);
-      });
-    }
-
-    // Update reemergence table
-    const reemergenceTableBody = document.querySelector('#reemergenceTable tbody');
-    if (reemergenceTableBody) {
-      reemergenceTableBody.innerHTML = '';
-      topK.reemergence.forEach((entry: any, index: number) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${entry.run}</td>
-          <td>${entry.anomalies.reemergence}</td>
-          <td>${entry.cfg.multiplier}</td>
-          <td>${entry.cfg.sizeX}x${entry.cfg.sizeY}</td>
-        `;
-        reemergenceTableBody.appendChild(row);
-      });
-    }
+    // Update tables for each category
+    categories.forEach(cat => {
+      const tableBody = document.querySelector(`#${cat.key}${cat.type === 'least' ? 'Least' : 'Top'}Table tbody`);
+      if (tableBody) {
+        tableBody.innerHTML = '';
+        let items = topK[cat.key] || [];
+        if (cat.type === 'least') {
+          items = items.slice().reverse().slice(0, 10); // Least 10 (assuming sorted descending, so reverse)
+        } else {
+          items = items.slice(0, 10);
+        }
+        items.forEach((entry: any, index: number) => {
+          const score = entry.anomalies[cat.key] || 0;
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${entry.run}</td>
+            <td>${score.toFixed(4)}</td>
+            <td>${entry.cfg.multiplier}</td>
+            <td>${entry.cfg.sizeX}x${entry.cfg.sizeY}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+    });
 
     // Update anomaly summary table with top 10 per category
     const summaryBody = document.getElementById('anomalySummaryBody');
     if (summaryBody) {
       summaryBody.innerHTML = '';
-      const categories = ['randomness', 'structure', 'reemergence'];
-      categories.forEach(category => {
-        if (topK[category]) {
-          topK[category].slice(0, 10).forEach((item: any, index: number) => {
-            const score = item.anomalies[category] || 0;
+      categories.filter(c => c.type === 'top').forEach(cat => {
+        if (topK[cat.key]) {
+          topK[cat.key].slice(0, 10).forEach((item: any, index: number) => {
+            const score = item.anomalies[cat.key] || 0;
             const anomaly = {
-              type: category,
+              type: cat.name,
               score,
-              description: getAnomalyDescription(category, score),
+              description: getAnomalyDescription(cat.key, score),
               run: item.run,
               multiplier: item.cfg.multiplier,
               sizeX: item.cfg.sizeX,
@@ -377,7 +556,7 @@ function updateAnomaliesTable(anomalies: any, logEntry: any, topK?: any) {
             };
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td>${category}</td>
+              <td>${cat.name}</td>
               <td>${index + 1}</td>
               <td>${score.toFixed(6)}</td>
               <td>${anomaly.description}</td>
@@ -566,6 +745,40 @@ window.addEventListener('load', () => {
 
   const displayLogicSummaryBtn = document.getElementById('displayLogicSummary');
   if (displayLogicSummaryBtn) displayLogicSummaryBtn.addEventListener('click', displayBotLogicSummary);
+
+  // Config Modal
+  const modal = document.getElementById('configModal');
+  const openConfigBtn = document.getElementById('openConfigBtn');
+  const closeBtn = document.querySelector('.close') as HTMLElement;
+
+  if (openConfigBtn && modal) {
+    openConfigBtn.addEventListener('click', () => {
+      const configControls = document.getElementById('configControls');
+      const mainControls = document.getElementById('controls');
+      if (configControls && mainControls) {
+        configControls.innerHTML = mainControls.innerHTML;
+        // Add event listeners to the cloned inputs
+        const clonedInputs = configControls.querySelectorAll('input');
+        clonedInputs.forEach(input => {
+          input.addEventListener('input', runSimulation);
+          input.addEventListener('change', runSimulation);
+        });
+      }
+      modal.style.display = 'block';
+    });
+  }
+
+  if (closeBtn && modal) {
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
 
   // Initial run
   runSimulation();

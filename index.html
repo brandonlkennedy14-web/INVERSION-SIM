@@ -295,6 +295,77 @@ F<!DOCTYPE html>
       background: rgba(0, 0, 0, 0.5);
       border-radius: 5px;
     }
+    #dvdBanner {
+      position: fixed;
+      top: 10px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-family: 'Orbitron', monospace;
+      font-size: 1.2em;
+      color: #00d4ff;
+      animation: dvdMove 10s linear infinite;
+      z-index: 1000;
+    }
+    @keyframes dvdMove {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100vw); }
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 600px;
+      border-radius: 10px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    #leaderboards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .leaderboard {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .leaderboard table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .leaderboard th, .leaderboard td {
+      padding: 5px;
+      text-align: center;
+      font-size: 0.8em;
+    }
+    .leaderboard th {
+      background: rgba(255, 255, 255, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -419,21 +490,145 @@ F<!DOCTYPE html>
         </div>
       </div>
       <div id="logicSummary">
-        <h3>Top 10 Anomalies per Category</h3>
-        <table id="anomalySummaryTable">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Rank</th>
-              <th>Score</th>
-              <th>Description</th>
-              <th>Timestamp</th>
-            </tr>
-          </thead>
-          <tbody id="anomalySummaryBody">
-            <!-- Rows will be populated by JS -->
-          </tbody>
-        </table>
+        <h3>Anomaly Leaderboards</h3>
+        <div id="leaderboards">
+          <div class="leaderboard">
+            <h4>Top Structure</h4>
+            <table id="structureTopTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Least Structure</h4>
+            <table id="structureLeastTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Top Random</h4>
+            <table id="randomnessTopTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Least Random</h4>
+            <table id="randomnessLeastTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Top Robust/Reemergence</h4>
+            <table id="reemergenceTopTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Least Robust/Reemergence</h4>
+            <table id="reemergenceLeastTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Top Space/Event Density</h4>
+            <table id="event_densityTopTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard">
+            <h4>Least Space/Event Density</h4>
+            <table id="event_densityLeastTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Run</th>
+                  <th>Score</th>
+                  <th>Multiplier</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows will be populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div id="anomalyDetails" style="margin-top: 20px; display: none;">
           <h4>Detailed Information</h4>
           <pre id="anomalyDetailsText"></pre>
@@ -450,6 +645,11 @@ F<!DOCTYPE html>
         <canvas id="coordinationCanvas" width="400" height="200"></canvas>
       </div>
     </div>
+    <!-- DVD Screensaver Banner -->
+    <div id="dvdBanner">
+      <span id="dvdText">Exploring the Edges of Reality: Where Quantum Inversions Meet Parameter Space Boundaries - Edge Detection in the Fabric of Simulation</span>
+    </div>
+
     <div id="visualization"></div>
     <div class="stats">
       <div class="stat-item">
@@ -465,6 +665,19 @@ F<!DOCTYPE html>
         <div>Reality Inversions</div>
       </div>
     </div>
+
+    <!-- Config Popup Modal -->
+    <div id="configModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Simulation Configuration</h2>
+        <div id="configControls">
+          <!-- Config inputs will be populated here -->
+        </div>
+      </div>
+    </div>
+
+    <button id="openConfigBtn">Open Config Controls</button>
   </div>
   <!-- Enhanced floating particles -->
   <div class="particle" style="left: 5%; top: 15%; animation-delay: 0s;"></div>
