@@ -23,7 +23,7 @@ const BASE_DIR = path.resolve("./");
 const RUNS_DIR = path.join(BASE_DIR, "runs");
 const COUNTER_PATH = path.join(BASE_DIR, "run_counter.txt");
 
-// ---------- Top-K Anomaly Stores (persistent ranking) ----------
+// ---------- Top-K Anomaly Stores (persistent ranking, global limit to 1000 total) ----------
 class TopKAnomalyStore {
   items: any[] = [];
   constructor(public file: string, public K: number, public anomalyType: string) {
@@ -76,11 +76,75 @@ class TopKAnomalyStore {
   }
 }
 
+// Global anomaly store to limit total to 1000
+class GlobalTopKStore {
+  items: any[] = [];
+  private maxTotal = 1000;
+
+  constructor(private stores: { [key: string]: TopKAnomalyStore }) {
+    // Load from all stores and merge
+    for (const store of Object.values(this.stores)) {
+      this.items.push(...store.items);
+    }
+    this.items = this.items.filter((item, index, self) => self.findIndex(i => i.runDir === item.runDir) === index); // Unique by runDir
+    this.items.sort((a, b) => this.getMaxScore(b) - this.getMaxScore(a));
+    this.items = this.items.slice(0, this.maxTotal);
+    this.pruneExcess();
+  }
+
+  private getMaxScore(item: any): number {
+    const scores = Object.values(item.anomalies || {}).filter(s => typeof s === 'number') as number[];
+    return Math.max(...scores, 0);
+  }
+
+  tryInsert(entry: any): boolean {
+    const maxScore = this.getMaxScore(entry);
+    if (this.items.length < this.maxTotal) {
+      this.items.push(entry);
+      this.items.sort((a, b) => this.getMaxScore(b) - this.getMaxScore(a));
+      return true;
+    }
+    const worstScore = this.getMaxScore(this.items[this.items.length - 1]);
+    if (maxScore <= worstScore) return false;
+    // Replace worst
+    const oldRunDir = this.items[this.items.length - 1].runDir;
+    if (fs.existsSync(oldRunDir)) {
+      fs.rmSync(oldRunDir, { recursive: true, force: true });
+      console.log(`Deleted inferior run globally: ${oldRunDir}`);
+    }
+    this.items[this.items.length - 1] = entry;
+    this.items.sort((a, b) => this.getMaxScore(b) - this.getMaxScore(a));
+    return true;
+  }
+
+  pruneExcess() {
+    if (this.items.length > this.maxTotal) {
+      const excess = this.items.splice(this.maxTotal);
+      excess.forEach(item => {
+        if (fs.existsSync(item.runDir)) {
+          fs.rmSync(item.runDir, { recursive: true, force: true });
+          console.log(`Pruned excess run: ${item.runDir}`);
+        }
+      });
+    }
+  }
+
+  save() {
+    // Update individual stores
+    for (const [type, store] of Object.entries(this.stores)) {
+      store.items = this.items.filter(item => item.anomalies && typeof item.anomalies[type] === 'number');
+      store.save();
+    }
+  }
+}
+
 const anomalyStores: { [key: string]: TopKAnomalyStore } = {
   randomness: new TopKAnomalyStore("anomalies/randomness_top.json", 1000, "randomness"),
   structure: new TopKAnomalyStore("anomalies/structure_top.json", 1000, "structure"),
   reemergence: new TopKAnomalyStore("anomalies/reemergence_top.json", 1000, "reemergence"),
 };
+
+const globalStore = new GlobalTopKStore(anomalyStores);
 
 // Dynamic anomaly detection
 function detectNewAnomalies(result: any, cfg: RunConfig, existingAnomalies: any) {
@@ -259,9 +323,9 @@ async function performSelfReflection(detector: AnomalyDetector, runCount: number
 
   // Analyze collected data to optimize anomaly thresholds
   const totalRuns = runCount;
-  const avgRandomness = anomalyStores.randomness.items.reduce((sum, item) => sum + item.anomalies.randomness, 0) / Math.max(anomalyStores.randomness.items.length, 1);
-  const avgStructure = anomalyStores.structure.items.reduce((sum, item) => sum + item.anomalies.structure, 0) / Math.max(anomalyStores.structure.items.length, 1);
-  const avgReemergence = anomalyStores.reemergence.items.reduce((sum, item) => sum + item.anomalies.reemergence, 0) / Math.max(anomalyStores.reemergence.items.length, 1);
+  const avgRandomness = anomalyStores.randomness!.items.reduce((sum, item) => sum + item.anomalies.randomness, 0) / Math.max(anomalyStores.randomness!.items.length, 1);
+  const avgStructure = anomalyStores.structure!.items.reduce((sum, item) => sum + item.anomalies.structure, 0) / Math.max(anomalyStores.structure!.items.length, 1);
+  const avgReemergence = anomalyStores.reemergence!.items.reduce((sum, item) => sum + item.anomalies.reemergence, 0) / Math.max(anomalyStores.reemergence!.items.length, 1);
 
   // Adjust thresholds based on data distribution (simple adaptive thresholding)
   const newThresholds = [
@@ -307,7 +371,96 @@ function broadcast(data: any) {
 
 
 
-import BotFleet from './botFleet';
+// Autorunner 3D positions and trajectories
+interface AutorunnerState {
+  id: number;
+  position: { x: number; y: number; z: number };
+  intendedTrajectory: { x: number; y: number; z: number }[];
+  actualTrajectory: { x: number; y: number; z: number }[];
+  direction: { dx: number; dy: number; dz: number };
+  group: number;
+  orientationHistory: { x: number; y: number; z: number }[];
+  geometry: { theta: number; phi: number };
+  luckScore: number;
+  randomLuckScore: number;
+}
+
+const autorunnerStates: AutorunnerState[] = [];
+const scale = 10; // Scale for 3D positions
+const cubePositions = [
+  { x: 0, y: 0, z: 0 },
+  { x: 1, y: 0, z: 0 },
+  { x: 0, y: 1, z: 0 },
+  { x: 1, y: 1, z: 0 },
+  { x: 0, y: 0, z: 1 },
+  { x: 1, y: 0, z: 1 },
+  { x: 0, y: 1, z: 1 },
+  { x: 1, y: 1, z: 1 },
+];
+
+// Initialize autorunner states in 2x2x2 cube matrix
+const matrixSize = 2;
+const positions = [];
+for (let x = 0; x < matrixSize; x++) {
+  for (let y = 0; y < matrixSize; y++) {
+    for (let z = 0; z < matrixSize; z++) {
+      positions.push({ x: x * scale, y: y * scale, z: z * scale });
+    }
+  }
+}
+for (let i = 0; i < 8; i++) {
+  const pos = positions[i]!;
+  autorunnerStates.push({
+    id: i,
+    position: pos,
+    intendedTrajectory: [pos],
+    actualTrajectory: [pos],
+    direction: { dx: Math.random() - 0.5, dy: Math.random() - 0.5, dz: Math.random() - 0.5 },
+    group: i % 2,
+    orientationHistory: [pos],
+    geometry: { theta: Math.random() * Math.PI * 2, phi: Math.random() * Math.PI / 2 },
+    luckScore: 0,
+    randomLuckScore: 0
+  });
+}
+
+function updateAutorunnerPositions() {
+  autorunnerStates.forEach(state => {
+    // Intended: straight line in direction
+    const lastIntended = state.intendedTrajectory[state.intendedTrajectory.length - 1]!;
+    const intendedNext = {
+      x: lastIntended.x + state.direction.dx,
+      y: lastIntended.y + state.direction.dy,
+      z: lastIntended.z + state.direction.dz,
+    };
+    state.intendedTrajectory.push(intendedNext);
+
+    // Actual: with some deviation
+    const deviation = 0.1;
+    const actualNext = {
+      x: intendedNext.x + (Math.random() - 0.5) * deviation,
+      y: intendedNext.y + (Math.random() - 0.5) * deviation,
+      z: intendedNext.z + (Math.random() - 0.5) * deviation,
+    };
+    state.actualTrajectory.push(actualNext);
+    state.position = actualNext;
+
+    // Update orientation history
+    state.orientationHistory.push(state.position);
+    if (state.orientationHistory.length > 50) state.orientationHistory.shift(); // Keep last 50
+
+    // Update geometry (simulate change)
+    state.geometry.theta += (Math.random() - 0.5) * 0.1;
+    state.geometry.phi += (Math.random() - 0.5) * 0.1;
+    state.geometry.phi = Math.max(0, Math.min(Math.PI / 2, state.geometry.phi)); // Clamp phi
+
+    // Keep last 100 points
+    if (state.intendedTrajectory.length > 100) state.intendedTrajectory.shift();
+    if (state.actualTrajectory.length > 100) state.actualTrajectory.shift();
+  });
+}
+
+import BotFleet from './botFleet.js';
 
 // Use BotFleet for COL and braided geometry
 let botFleet: BotFleet;
@@ -319,20 +472,41 @@ async function runBackgroundSimulations() {
 
   // Broadcast to browser
   setInterval(() => {
+    updateAutorunnerPositions(); // Update 3D positions
+
     const bots = botFleet.getBots();
-    const runnerData = bots.map(bot => ({
+    const runnerData = bots.map((bot: any) => ({
       id: bot.getId(),
       position: { x: bot.getGeometricState().theta, y: bot.getGeometricState().phi }, // Map to sphere coords
       direction: { dx: 0, dy: 0 }, // Placeholder
       anomalies: {} // Placeholder
     }));
 
+    // Send autorunner updates
+    autorunnerStates.forEach(state => {
+      broadcast({
+        type: 'autorunnerUpdate',
+        autorunnerId: state.id,
+        position: state.position,
+        direction: state.direction,
+        anomalies: {}, // Placeholder
+        trajectory: state.actualTrajectory.slice(-10), // Last 10 points
+        intendedTrajectory: state.intendedTrajectory.slice(-10),
+        group: state.group
+      });
+    });
+
     broadcast({
       type: 'cycleUpdate',
       cycleCount: 0, // Placeholder
       runnerData,
       collectiveAnomalies: { avgRandomness: 0, avgStructure: 0, avgReemergence: 0 },
-      topK: {} // Placeholder
+      topK: {
+        randomness: anomalyStores.randomness!.items.slice(0, 10),
+        structure: anomalyStores.structure!.items.slice(0, 10),
+        reemergence: anomalyStores.reemergence!.items.slice(0, 10),
+        event_density: [], // Add if available
+      }
     });
   }, 1000);
 
