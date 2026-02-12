@@ -308,6 +308,8 @@ function zoom(factor: number) {
 
 // Autorunner data storage
 let autorunners: Map<number, any> = new Map();
+let autorunnerAnimations: Map<number, { startPos: { x: number; y: number }; endPos: { x: number; y: number }; startTime: number; duration: number }> = new Map();
+let animationFrameId: number | null = null;
 
 // WebSocket connection
 function connectWebSocket() {
@@ -322,6 +324,18 @@ function connectWebSocket() {
       updateAnomaliesTable(data.anomalies, data.logEntry, data.topK);
     } else if (data.type === 'autorunnerUpdate') {
       // Update individual autorunner data
+      const current = autorunners.get(data.autorunnerId);
+      if (current) {
+        // Set animation if position changed
+        if (current.position.x !== data.position.x || current.position.y !== data.position.y) {
+          autorunnerAnimations.set(data.autorunnerId, {
+            startPos: { x: current.position.x, y: current.position.y },
+            endPos: { x: data.position.x, y: data.position.y },
+            startTime: Date.now(),
+            duration: 1000
+          });
+        }
+      }
       autorunners.set(data.autorunnerId, {
         id: data.autorunnerId,
         position: data.position,
@@ -433,24 +447,43 @@ function renderAutorunnerMap() {
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
 
+      // Get current position, considering animation
+      let currentPos = autorunner.position;
+      const anim = autorunnerAnimations.get(autorunner.id);
+      if (anim) {
+        const elapsed = Date.now() - anim.startTime;
+        const progress = Math.min(elapsed / anim.duration, 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        currentPos = {
+          x: anim.startPos.x + (anim.endPos.x - anim.startPos.x) * easedProgress,
+          y: anim.startPos.y + (anim.endPos.y - anim.startPos.y) * easedProgress
+        };
+        if (progress >= 1) {
+          autorunnerAnimations.delete(autorunner.id);
+        }
+      }
+
       // Draw segments like Snake: head larger, body segments smaller
       const maxSegments = 5; // Show last 5 positions as segments
       const segmentSize = 8; // Head size
       const segmentShrink = 1.5; // Each segment smaller
 
-      for (let i = Math.max(0, autorunner.trajectory.length - maxSegments); i < autorunner.trajectory.length; i++) {
-        const point = autorunner.trajectory[i];
+      // Add current position to trajectory for drawing
+      const drawTrajectory = [currentPos, ...autorunner.trajectory.slice(-maxSegments + 1)];
+
+      for (let i = 0; i < drawTrajectory.length; i++) {
+        const point = drawTrajectory[i];
         const px = (point.x - xMin) * xScale;
         const py = gridHeight - (point.y - yMin) * yScale;
-        const size = segmentSize / Math.pow(segmentShrink, autorunner.trajectory.length - 1 - i);
+        const size = segmentSize / Math.pow(segmentShrink, i);
 
         ctx.beginPath();
         ctx.arc(px, py, size, 0, 2 * Math.PI);
         ctx.fill();
 
         // Connect segments with lines
-        if (i > Math.max(0, autorunner.trajectory.length - maxSegments)) {
-          const prevPoint = autorunner.trajectory[i - 1];
+        if (i > 0) {
+          const prevPoint = drawTrajectory[i - 1];
           const prevPx = (prevPoint.x - xMin) * xScale;
           const prevPy = gridHeight - (prevPoint.y - yMin) * yScale;
 
@@ -489,6 +522,13 @@ function renderAutorunnerMap() {
   ctx.rotate(-Math.PI / 2);
   ctx.fillText('SizeX (5-15)', 0, 0);
   ctx.restore();
+
+  // Continue animation if there are active animations
+  if (autorunnerAnimations.size > 0) {
+    animationFrameId = requestAnimationFrame(renderAutorunnerMap);
+  } else {
+    animationFrameId = null;
+  }
 }
 
 function updateAnomaliesTable(anomalies: any, logEntry: any, topK?: any) {

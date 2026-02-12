@@ -304,12 +304,20 @@ F<!DOCTYPE html>
       font-family: 'Orbitron', monospace;
       font-size: 1.2em;
       color: #00d4ff;
-      animation: dvdMove 10s linear infinite;
+      animation: dvdScreensaver 15s linear infinite;
       z-index: 1000;
+      white-space: nowrap;
     }
-    @keyframes dvdMove {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100vw); }
+    @keyframes dvdScreensaver {
+      0% { transform: translateX(-100%) rotate(0deg); }
+      12.5% { transform: translateX(0%) rotate(90deg); }
+      25% { transform: translateX(100%) rotate(180deg); }
+      37.5% { transform: translateX(100%) rotate(270deg); }
+      50% { transform: translateX(50%) rotate(360deg) scale(1.2); }
+      62.5% { transform: translateX(0%) rotate(450deg); }
+      75% { transform: translateX(-100%) rotate(540deg); }
+      87.5% { transform: translateX(-50%) rotate(630deg) scale(0.8); }
+      100% { transform: translateX(-100%) rotate(720deg); }
     }
     .modal {
       display: none;
