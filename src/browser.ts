@@ -568,33 +568,90 @@ function updateCoordinationGraph() {
   const bots = botFleet.getBots();
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
-  const radius = 60;
+  const radius = 50;
 
-  bots.forEach((bot, index) => {
-    const angle = (index / bots.length) * 2 * Math.PI;
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
+  // Separate bots into two groups
+  const group0Bots = bots.filter(bot => bot.getGroup() === 0);
+  const group1Bots = bots.filter(bot => bot.getGroup() === 1);
 
-    // Color based on group
-    ctx.fillStyle = bot.getGroup() === 0 ? '#00d4ff' : '#ff6b6b';
-    ctx.beginPath();
-    ctx.arc(x, y, 10, 0, 2 * Math.PI);
-    ctx.fill();
+  // Colors for groups: 3 colors per group
+  const colorsGroup0 = ['#00d4ff', '#00ff88', '#0088ff']; // blue, green, light blue
+  const colorsGroup1 = ['#ff6b6b', '#ffaa00', '#ff4444']; // red, orange, darker red
 
-    // Draw connections to other bots in same group
-    bots.forEach((otherBot, otherIndex) => {
-      if (otherBot.getGroup() === bot.getGroup() && otherIndex !== index) {
-        const otherAngle = (otherIndex / bots.length) * 2 * Math.PI;
-        const otherX = centerX + Math.cos(otherAngle) * radius;
-        const otherY = centerY + Math.sin(otherAngle) * radius;
+  // Function to draw group
+  const drawGroup = (groupBots: any[], groupCenterX: number, groupColors: string[], label: string) => {
+    groupBots.forEach((bot, index) => {
+      const angle = (index / groupBots.length) * 2 * Math.PI;
+      const x = groupCenterX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
 
-        ctx.strokeStyle = bot.getGroup() === 0 ? 'rgba(0, 212, 255, 0.5)' : 'rgba(255, 107, 107, 0.5)';
+      // Color based on index in group
+      ctx.fillStyle = groupColors[index % groupColors.length];
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Label for tasks (placeholder: use index as task indicator)
+      ctx.fillStyle = 'white';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Task ${index + 1}`, x, y + 25);
+    });
+
+    // Draw cooperation lines within group (solid for cooperation)
+    for (let i = 0; i < groupBots.length; i++) {
+      for (let j = i + 1; j < groupBots.length; j++) {
+        const bot1 = groupBots[i];
+        const bot2 = groupBots[j];
+        const angle1 = (i / groupBots.length) * 2 * Math.PI;
+        const angle2 = (j / groupBots.length) * 2 * Math.PI;
+        const x1 = groupCenterX + Math.cos(angle1) * radius;
+        const y1 = centerY + Math.sin(angle1) * radius;
+        const x2 = groupCenterX + Math.cos(angle2) * radius;
+        const y2 = centerY + Math.sin(angle2) * radius;
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; // white for cooperation
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(otherX, otherY);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.stroke();
       }
+    }
+  };
+
+  // Draw group 0 on the left
+  drawGroup(group0Bots, centerX - radius - 20, colorsGroup0, 'Group 0');
+
+  // Draw group 1 on the right
+  drawGroup(group1Bots, centerX + radius + 20, colorsGroup1, 'Group 1');
+
+  // Draw relative task lines between groups (dashed for inter-group tasks)
+  group0Bots.forEach((bot0, i0) => {
+    group1Bots.forEach((bot1, i1) => {
+      const angle0 = (i0 / group0Bots.length) * 2 * Math.PI;
+      const angle1 = (i1 / group1Bots.length) * 2 * Math.PI;
+      const x0 = (centerX - radius - 20) + Math.cos(angle0) * radius;
+      const y0 = centerY + Math.sin(angle0) * radius;
+      const x1 = (centerX + radius + 20) + Math.cos(angle1) * radius;
+      const y1 = centerY + Math.sin(angle1) * radius;
+
+      ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)'; // yellow dashed for relative tasks
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.setLineDash([]);
     });
   });
+
+  // Add group labels
+  ctx.fillStyle = 'white';
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Group 0: Cooperation', centerX - radius - 20, centerY - radius - 10);
+  ctx.fillText('Group 1: Cooperation', centerX + radius + 20, centerY - radius - 10);
+  ctx.fillText('Inter-Group Tasks', centerX, centerY + radius + 30);
 }

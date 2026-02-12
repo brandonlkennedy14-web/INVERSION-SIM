@@ -1,5 +1,15 @@
 // This script runs continuous background simulations and posts results to a blockchain.
 // Auto-runs forever, checks for optimality using PDF logic, reruns with adjustments.
+//
+// Current Objective in Words:
+// The bots are engaged in an infinite search through a vast parameter space of simulation configurations,
+// aiming to discover "optimal" setups that minimize anomalies and maximize structural coherence in quantum-like inversions.
+// Their current direction points towards configurations that exhibit low randomness (high structure), strong reemergence patterns,
+// quantized band structures in event step differences, prime-based envelope dynamics, and periodic spectral signatures.
+// They apply mathematical reasoning based on anomaly detection thresholds (e.g., randomness < 0.5, structure > 0.5, reemergence < 100),
+// PDF-inspired checks for band quantization and prime singularities, and spectral variance analysis to decide which parameter adjustments
+// (cycling multipliers 1-20, increasing grid sizes up to 15x15, recalculating inversion schedules) to pursue in the search space,
+// iteratively refining towards configurations that pass all optimality criteria without detected anomalies.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -7,10 +17,9 @@ import { runVariant, writeOutputs } from "./core.js";
 import { AnomalyDetector } from "./anomaly_metrics.js";
 import { SquareInversionReflect } from "./variants/square_inversion_reflect.js";
 import type { RunConfig } from "./types.js";
-import WebSocket from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 
-// ---------- paths ----------
-const BASE_DIR = path.resolve("../Documents/GitHub/INVERSION-SIM"); // Adjust if needed
+const BASE_DIR = path.resolve("./");
 const RUNS_DIR = path.join(BASE_DIR, "runs");
 const COUNTER_PATH = path.join(BASE_DIR, "run_counter.txt");
 
@@ -204,7 +213,7 @@ async function performSelfReflection(detector: AnomalyDetector, runCount: number
 }
 
 // ---------- WebSocket Server ----------
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocketServer({ port: 8080 });
 console.log("WebSocket server started on port 8080");
 
 wss.on('connection', (ws: WebSocket) => {
