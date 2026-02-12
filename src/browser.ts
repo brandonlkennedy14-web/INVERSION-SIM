@@ -1008,6 +1008,31 @@ function generateMathematicalDeductions(anomaly: any): string {
 window.addEventListener('load', () => {
   connectWebSocket();
 
+  // Initialize botFleet automatically on page load with default data
+  initializeBotFleet();
+
+  // Render all bot fleet views immediately after initialization
+  setTimeout(() => {
+    renderAutorunnerMap();
+    renderHyperbolicGrid();
+    updateCoordinationGraph();
+    populateLeaderboardsFromLocalData();
+    updateBotLog();
+  }, 100);
+
+  // Set up intervals for live updates (every 100ms)
+  setInterval(() => {
+    renderAutorunnerMap();
+    renderHyperbolicGrid();
+    updateCoordinationGraph();
+  }, 100);
+
+  // Update leaderboards and bot log less frequently (every 2 seconds)
+  setInterval(() => {
+    populateLeaderboardsFromLocalData();
+    updateBotLog();
+  }, 2000);
+
   const runSimBtn = document.getElementById('runSim');
   const mode2DBtn = document.getElementById('mode2D');
   const mode3DBtn = document.getElementById('mode3D');
