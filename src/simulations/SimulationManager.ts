@@ -93,7 +93,7 @@ export class SimulationManager {
       this.bridge,
       this.blockchainSync ?? undefined,
       {
-        matrixSize: this.config.matrixSize,
+        matrixSize: this.config.matrixSize ?? 5,
         updateInterval: this.config.updateInterval ?? 100
       }
     );
@@ -269,12 +269,10 @@ export class SimulationManager {
       this.bridge,
       this.blockchainSync ?? undefined,
       {
-        matrixSize: this.config.matrixSize,
+        matrixSize: this.config.matrixSize ?? 5,
         updateInterval: this.config.updateInterval ?? 100
       }
     );
-
-
 
     console.log('[SimulationManager] All simulations reset');
   }

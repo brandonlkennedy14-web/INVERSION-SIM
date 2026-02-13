@@ -2,9 +2,9 @@
 
 ## Phase 1: Create Core Infrastructure
 - [x] Create directory structure (src/simulations/, src/bridge/)
-- [ ] Create SimulationBridge.ts - Pub/sub event bus for live updates
-- [ ] Create BlockchainSync.ts - Manages blockchain persistence layer
-- [ ] Create shared types for simulation data
+- [x] Create SimulationBridge.ts - Pub/sub event bus for live updates
+- [x] Create BlockchainSync.ts - Manages blockchain persistence layer
+- [x] Create shared types for simulation data
 
 ## Phase 2: Create Simulation Classes
 - [ ] Create ParticleSimulation.ts - Handles dimension navigation, trajectory generation
