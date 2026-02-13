@@ -1,0 +1,32 @@
+{
+  "parameters": {
+    "sizeX": 15,
+    "sizeY": 15,
+    "x0": 1,
+    "y0": 1,
+    "vx0": 1,
+    "vy0": 1,
+    "phase0": 0,
+    "steps": 200003,
+    "multiplier": 20,
+    "mod": 1000003,
+    "inversionSchedule": [
+      {
+        "step": 40000,
+        "kind": "GEOM"
+      },
+      {
+        "step": 80001,
+        "kind": "SPHERE"
+      },
+      {
+        "step": 120001,
+        "kind": "OBSERVER"
+      },
+      {
+        "step": 160002,
+        "kind": "CAUSAL"
+      }
+    ]
+  }
+}
