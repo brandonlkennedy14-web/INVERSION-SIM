@@ -50,8 +50,8 @@ This document consolidates all TODO items from multiple files and reflects the a
 - [x] Update runIteration to use all 5 phases (coprime metrics, learning, topology, stuckness, spectral) - IMPLEMENTED
 - [x] Integrate phase methods into actual bot behavior - IMPLEMENTED in runIteration()
 
-### Storage and Persistence (COMPLETED)
-- [x] Enable blockchain storage - IMPLEMENTED via BlockchainManager class
+### Storage and Persistence
+- [ ] Enable blockchain storage - STUB ONLY: BlockchainManager class exists but wallet/provider are null, postResults just logs to console (NOT IMPLEMENTED)
 - [x] Ensure data persists across sessions - IMPLEMENTED with JSON file storage
 
 ## ❌ NOT COMPLETED ITEMS
