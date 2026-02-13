@@ -1,0 +1,24 @@
+{
+  "parameters": {
+    "sizeX": 10,
+    "sizeY": 11,
+    "x0": 1,
+    "y0": 0,
+    "vx0": -3,
+    "vy0": -2,
+    "phase0": 0,
+    "steps": 97915,
+    "multiplier": 3,
+    "mod": 1000003,
+    "inversionSchedule": [
+      {
+        "step": 41721,
+        "kind": "SPHERE"
+      },
+      {
+        "step": 59472,
+        "kind": "CAUSAL"
+      }
+    ]
+  }
+}

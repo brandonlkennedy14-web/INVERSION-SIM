@@ -1,0 +1,15 @@
+{
+  "parameters": {
+    "sizeX": 7,
+    "sizeY": 16,
+    "x0": 3,
+    "y0": 4,
+    "vx0": 1,
+    "vy0": 1,
+    "phase0": 0,
+    "steps": 46401,
+    "multiplier": 3,
+    "mod": 1000003,
+    "inversionSchedule": []
+  }
+}

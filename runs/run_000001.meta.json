@@ -1,0 +1,20 @@
+{
+  "parameters": {
+    "sizeX": 14,
+    "sizeY": 19,
+    "x0": 1,
+    "y0": 0,
+    "vx0": 2,
+    "vy0": 3,
+    "phase0": 0,
+    "steps": 54964,
+    "multiplier": 3,
+    "mod": 1000003,
+    "inversionSchedule": [
+      {
+        "step": 23851,
+        "kind": "SPHERE"
+      }
+    ]
+  }
+}

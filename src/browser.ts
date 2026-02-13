@@ -1014,11 +1014,17 @@ function generateMathematicalDeductions(anomaly: any): string {
   return deductions;
 }
 
+// Initialize botFleet automatically on page load with default data
+function initializeBotFleet() {
+  console.log("Initializing bot fleet...");
+  if (!botFleet) {
+    botFleet = new BotFleet();
+  }
+}
+
 // Event listeners
 window.addEventListener('load', () => {
   connectWebSocket();
-
-  // Initialize botFleet automatically on page load with default data
   initializeBotFleet();
 
   // Render all bot fleet views immediately after initialization

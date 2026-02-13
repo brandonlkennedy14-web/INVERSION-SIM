@@ -37,15 +37,15 @@
 - [x] Use spectral data for anomaly improvement
 
 ### Integration: Fleet-level coordination
-- [ ] Add fleetCoordination method to BotFleet
-- [ ] Update runIteration to use all phases
+- [x] Add fleetCoordination method to BotFleet
+- [x] Update runIteration to use all phases
 
 ## Other TODO Items (TODO.md)
 
-- [ ] Add 2D hyperbolic grid for each bot's current geometry, display goal and logic
-- [ ] Set top anomaly as screensaver in HTML
+- [x] Add 2D hyperbolic grid for each bot's current geometry, display goal and logic
+- [x] Set top anomaly as screensaver in HTML
+- [x] Ensure simulations and data are stored persistently
 - [ ] Clean up entire repo: remove unused code, fix errors, debug
-- [ ] Ensure simulations and data are stored persistently
 - [ ] Auto commit and push changes
 
 ## Progress Notes

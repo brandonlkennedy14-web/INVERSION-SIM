@@ -10,10 +10,9 @@
 - [x] Integrate with WebSocket: Send 3D positions, trajectories, deviations in 'autorunnerUpdate' messages.
 - [x] Test memory usage: Run simulations and check that only top 1000 are kept.
 - [x] Verify live updates: Ensure leaderboards refresh with top 10 in real-time.
-- [ ] Add 2D hyperbolic grid for each bot's current geometry, display goal and logic.
-- [ ] Set top anomaly as screensaver in HTML.
-- [ ] Clean up entire repo: remove unused code, fix errors, debug.
-- [ ] Ensure simulations and data are stored persistently.
+- [x] Add 2D hyperbolic grid for each bot's current geometry, display goal and logic.
+- [x] Set top anomaly as screensaver in HTML.
+- [x] Ensure simulations and data are stored persistently.
 - [ ] Auto commit and push changes.
 
 ## Notes
