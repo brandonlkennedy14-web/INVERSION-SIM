@@ -838,11 +838,21 @@ function updateAnomaliesTable(anomalies: any, logEntry: any, topK?: any) {
       }
     });
 
-    // Update banner with top anomaly
+    // Update banner with top anomaly (scroll animation for 5x7 banner effect)
     if (topAnomaly) {
       const bannerText = document.getElementById('bannerText');
       if (bannerText) {
-        bannerText.textContent = `Top Anomaly: ${topAnomaly.type} Score ${topAnomaly.score.toFixed(4)} Run ${topAnomaly.run} Mul ${topAnomaly.multiplier} Grid ${topAnomaly.sizeX}x${topAnomaly.sizeY} - Exploring Quantum Realities`;
+        // Create dynamic banner text with more details
+        const bannerContent = `★ TOP ANOMALY ★ ${topAnomaly.type}: ${topAnomaly.score.toFixed(6)} | Run: ${topAnomaly.run} | Multiplier: ${topAnomaly.multiplier} | Grid: ${topAnomaly.sizeX}x${topAnomaly.sizeY} | Band: ${topAnomaly.bandOk || 'N/A'} | Prime: ${topAnomaly.primeOk || 'N/A'} | Spectral: ${topAnomaly.spectralOk || 'N/A'} | COL Phase: ${botFleet ? 'exploration' : 'seeding'} | Geometric: theta-phi dynamics | Memory: compression active | ☆ Exploring Quantum Realities - Braided Sixth-Chord Geometry ☆`;
+        bannerText.textContent = bannerContent;
+        
+        // Also update banner style for 5x7 effect
+        const banner = document.getElementById('banner');
+        if (banner) {
+          banner.style.fontFamily = 'Orbitron, monospace';
+          banner.style.fontSize = '1.1em';
+          banner.style.letterSpacing = '2px';
+        }
       }
     }
 
