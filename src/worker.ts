@@ -59,3 +59,25 @@ async function startWorker() {
 }
 
 startWorker();
+async function cacheConsciousness(jobId: string, log: any[]) {
+    // 1. Calculate 'Intelligence' (How many unique Prime levels were hit?)
+    const primeLevels = [2, 3, 5, 7, 11, 13, 17, 19];
+    const hitCount = log.filter(entry => 
+        primeLevels.some(p => Math.abs(entry.phi - p) < 0.5)
+    ).length;
+
+    // 2. Only save if it's "High Intelligence" (e.g., hit 5+ barriers)
+    if (hitCount >= 5) {
+        console.log(`[Intelligence Found] Job ${jobId} hit ${hitCount} barriers. Caching...`);
+        
+        await supabase.from('consciousness_cache').insert({
+            job_id: jobId,
+            complexity_score: hitCount,
+            braid_data: log,
+            created_at: new Date()
+        });
+    } else {
+        // Bloat Prevention: Delete common/uninteresting runs
+        console.log(`[Bloat Filter] Job ${jobId} too simple. Discarding.`);
+    }
+}
