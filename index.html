@@ -1,724 +1,110 @@
-F<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inversion Simulation - Exploring the Fabric of Reality</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Roboto', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-      color: #e0e0e0;
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-    #app {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    h1 {
-      font-family: 'Orbitron', monospace;
-      font-size: 3.5em;
-      text-align: center;
-      background: linear-gradient(45deg, #00d4ff, #090979, #ff6b6b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 20px;
-      text-shadow: 0 0 30px rgba(0, 212, 255, 0.7);
-      animation: glow 3s ease-in-out infinite alternate;
-      letter-spacing: 2px;
-    }
-    @keyframes glow {
-      from { text-shadow: 0 0 30px rgba(0, 212, 255, 0.7); }
-      to { text-shadow: 0 0 50px rgba(0, 212, 255, 1), 0 0 70px rgba(255, 107, 107, 0.5); }
-    }
-    .subtitle {
-      font-family: 'Roboto', sans-serif;
-      font-size: 1.2em;
-      text-align: center;
-      color: #b0b0b0;
-      margin-bottom: 40px;
-      max-width: 800px;
-      line-height: 1.6;
-    }
-    #controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 20px;
-      margin-bottom: 40px;
-      padding: 30px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-      position: relative;
-    }
-    #controls::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(45deg, rgba(0, 212, 255, 0.1), rgba(255, 107, 107, 0.1));
-      border-radius: 20px;
-      z-index: -1;
-    }
-    #controls label {
-      display: flex;
-      flex-direction: column;
-      font-weight: 400;
-      color: #d0d0d0;
-      font-size: 0.9em;
-    }
-    #controls input {
-      margin-top: 8px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 8px;
-      color: #fff;
-      font-size: 16px;
-      transition: all 0.3s ease;
-    }
-    #controls input:focus {
-      outline: none;
-      border-color: #00d4ff;
-      box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
-      background: rgba(255, 255, 255, 0.18);
-    }
-    button {
-      padding: 15px 30px;
-      margin: 8px;
-      background: linear-gradient(45deg, #667eea, #764ba2);
-      color: #fff;
-      border: none;
-      border-radius: 30px;
-      cursor: pointer;
-      font-family: 'Orbitron', monospace;
-      font-size: 14px;
-      font-weight: 700;
-      transition: all 0.4s ease;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    button:hover {
-      transform: translateY(-3px) scale(1.05);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      background: linear-gradient(45deg, #764ba2, #667eea);
-    }
-    button:active {
-      transform: translateY(-1px) scale(1.02);
-    }
-    #runSim {
-      grid-column: span 2;
-      background: linear-gradient(45deg, #ff6b6b, #ee5a24, #00d4ff);
-      font-size: 16px;
-      padding: 18px 40px;
-    }
-    #runSim:hover {
-      background: linear-gradient(45deg, #00d4ff, #ff6b6b, #ee5a24);
-      box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
-    }
-    #modeButtons, #advancedButtons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 30px;
-      gap: 15px;
-    }
-    #status {
-      margin-bottom: 30px;
-      padding: 20px;
-      background: rgba(0, 212, 255, 0.15);
-      border-radius: 15px;
-      border-left: 5px solid #00d4ff;
-      font-family: 'Orbitron', monospace;
-      font-size: 1.1em;
-      text-align: center;
-      box-shadow: 0 5px 15px rgba(0, 212, 255, 0.2);
-      animation: pulse 4s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 5px 15px rgba(0, 212, 255, 0.2); }
-      50% { box-shadow: 0 5px 25px rgba(0, 212, 255, 0.4); }
-    }
-    #visualization {
-      width: 100%;
-      height: 700px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 20px;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(20px);
-      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
-      margin-top: 30px;
-      position: relative;
-      overflow: hidden;
-    }
-    #visualization::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: linear-gradient(45deg, #00d4ff, #ff6b6b, #667eea, #764ba2);
-      border-radius: 20px;
-      z-index: -1;
-      opacity: 0.3;
-      animation: borderGlow 5s ease-in-out infinite;
-    }
-    @keyframes borderGlow {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 0.8; }
-    }
-    .particle {
-      position: absolute;
-      width: 3px;
-      height: 3px;
-      background: #00d4ff;
-      border-radius: 50%;
-      animation: float 4s ease-in-out infinite;
-      box-shadow: 0 0 6px #00d4ff;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.6; }
-      50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
-    }
-    .stats {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      font-family: 'Orbitron', monospace;
-      font-size: 0.9em;
-    }
-    .stat-item {
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 1.5em;
-      color: #00d4ff;
-    }
-    #botSummary {
-      margin-top: 40px;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-    }
-    #botSummary h2 {
-      color: #00d4ff;
-      margin-bottom: 20px;
-    }
-    #botSummary h3 {
-      color: #ff6b6b;
-      margin-bottom: 10px;
-    }
-    #logicSummaryText {
-      background: rgba(0, 0, 0, 0.5);
-      padding: 15px;
-      border-radius: 10px;
-      font-family: 'Roboto', monospace;
-      font-size: 0.9em;
-      white-space: pre-wrap;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    #botLog {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      font-family: 'Roboto', monospace;
-      font-size: 0.8em;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    #botLog h4 {
-      color: #00d4ff;
-      margin-bottom: 10px;
-    }
-    #botLog ul {
-      list-style: none;
-      padding: 0;
-    }
-    #botLog li {
-      margin-bottom: 5px;
-      padding: 5px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 5px;
-    }
-    #coordinationGraph {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-    }
-    #coordinationGraph h4 {
-      color: #ff6b6b;
-      margin-bottom: 10px;
-    }
-    #coordinationCanvas {
-      width: 100%;
-      height: 200px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 5px;
-    }
-    #autorunnerMap {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-    }
-    #autorunnerMap h4 {
-      color: #ff6b6b;
-      margin-bottom: 10px;
-    }
-    #mapCanvas {
-      width: 100%;
-      height: 400px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 5px;
-    }
-    #banner {
-      position: fixed;
-      top: 10px;
-      left: 0;
-      width: 100%;
-      text-align: center;
-      font-family: 'Orbitron', monospace;
-      font-size: 1.2em;
-      color: #00d4ff;
-      animation: scrollBanner 20s linear infinite;
-      z-index: 1000;
-      white-space: nowrap;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 10px;
-      border-bottom: 2px solid #00d4ff;
-    }
-    @keyframes scrollBanner {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-    #hyperbolicGrid {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-    }
-    #hyperbolicGrid h4 {
-      color: #ff6b6b;
-      margin-bottom: 10px;
-    }
-    #hyperbolicCanvas {
-      width: 100%;
-      height: 300px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 5px;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1001;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 15% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 600px;
-      border-radius: 10px;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-    }
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    #leaderboards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-top: 20px;
-    }
-    .leaderboard {
-      background: rgba(0, 0, 0, 0.5);
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .leaderboard table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .leaderboard th, .leaderboard td {
-      padding: 5px;
-      text-align: center;
-      font-size: 0.8em;
-    }
-    .leaderboard th {
-      background: rgba(255, 255, 255, 0.1);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INVERSION-SIM | 3D Monitor</title>
+    <style>
+        body { margin: 0; background: #050505; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; text-shadow: 0 0 5px #0f0; }
+        #stats { position: absolute; bottom: 10px; left: 10px; font-size: 12px; opacity: 0.7; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
-  <div id="app">
-    <h1>Inversion Simulation</h1>
-    <p class="subtitle">Dive into the quantum fabric of reality. Explore topological inversions, phase spaces, and the hidden symmetries of the universe through interactive visualizations powered by advanced mathematical algorithms.</p>
-    <div id="status">Background simulations running... Exploring quantum realities. <span id="runCount">0</span> runs completed.</div>
-    <div id="controls">
-      <div id="inputModeToggle">
-        <label><input type="radio" name="inputMode" value="discrete" checked> Discrete Numbers</label>
-        <label><input type="radio" name="inputMode" value="ratio"> Ratio Inputs</label>
-      </div>
-      <label>Grid Size X: <input type="number" id="sizeX" value="5" min="1" max="20"></label>
-      <label>Grid Size Y: <input type="number" id="sizeY" value="7" min="1" max="20"></label>
-      <label>Initial X: <input type="number" id="x0" value="1" step="0.1"></label>
-      <label>Initial Y: <input type="number" id="y0" value="1" step="0.1"></label>
-      <label>Velocity X: <input type="number" id="vx0" value="1" step="0.1"></label>
-      <label>Velocity Y: <input type="number" id="vy0" value="1" step="0.1"></label>
-      <label>Simulation Steps: <input type="number" id="steps" value="200003" min="1000" max="1000000"></label>
-      <label>Prime Growth Ratio: <input type="range" id="primeGrowthRatio" min="0.1" max="10" step="0.1" value="1"></label>
-      <label>Color Illusion Mode: <select id="colorMode">
-        <option value="normal">Normal</option>
-        <option value="checkerboard">Checkerboard Illusion</option>
-        <option value="contrast">High Contrast</option>
-        <option value="monochrome">Monochrome</option>
-        <option value="rainbow">Rainbow</option>
-        <option value="benham">Benham's Top Illusion</option>
-        <option value="contours">Illusory Contours</option>
-        <option value="constancy">Color Constancy</option>
-      </select></label>
-      <label>Animation Speed: <input type="range" id="animationSpeed" min="1" max="100" value="50"></label>
-      <div id="inversionToggles">
-        <label>Inversion Toggles:</label><br>
-        <label>GEOM: <input type="checkbox" id="inversionGEOM" checked></label>
-        <label>SPHERE: <input type="checkbox" id="inversionSPHERE" checked></label>
-        <label>OBSERVER: <input type="checkbox" id="inversionOBSERVER" checked></label>
-        <label>CAUSAL: <input type="checkbox" id="inversionCAUSAL" checked></label>
-      </div>
-      <button id="runSim">🚀 Launch Simulation</button>
+    <div id="ui">
+        <h1>SIM-3: COL RUNNER</h1>
+        <div id="status">CONNECTING TO SUPABASE...</div>
+        <div id="anomaly-score">ANOMALY: 0.000</div>
     </div>
-    <div id="modeButtons">
-      <button id="mode2D">🌌 2D Topology</button>
-      <button id="mode3D">🚀 3D Immersion</button>
-      <button id="modeAbstract">✨ Quantum Abstract</button>
-    </div>
-    <div id="advancedButtons">
-      <button id="toroidal">🔄 Toroidal Reality</button>
-      <button id="hyperbolic">🌌 Hyperbolic Dimensions</button>
-      <button id="phaseSpace">⚛️ Phase Space Manifold</button>
-      <button id="mode3DAutorunner">🤖 3D Autorunner Map</button>
-    </div>
-    <div id="variantButtons">
-      <button id="variantMirror">🪞 Mirror Inversion</button>
-      <button id="variantSquareClamp">⬜ Square Clamp Reflect</button>
-      <button id="variantSquareInversion">🔄 Square Inversion Reflect</button>
-      <button id="variantSquareSticky">📌 Square Sticky Reflect</button>
-    </div>
-    <div id="zoomButtons">
-      <button id="zoomIn">🔍 Zoom In</button>
-      <button id="zoomOut">🔍 Zoom Out</button>
-    </div>
-    <div id="botButtons">
-      <button id="runBots">🤖 Run Bot Fleet</button>
-      <button id="startContinuousBots">🔄 Start Continuous Bots</button>
-      <button id="stopContinuousBots">⏹️ Stop Continuous Bots</button>
-      <button id="displayCategories">📊 Display Categories</button>
-      <button id="displayLogicSummary">📝 Display Logic Summary</button>
-    </div>
-    <div id="botSummary">
-      <h2>Bot Fleet Summary</h2>
-      <div id="top10Table">
-        <h3>Top 10 Anomalies by Category</h3>
-        <div id="randomnessSection">
-          <h4>Top Randomness</h4>
-          <table id="randomnessTable">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Run</th>
-                <th>Score</th>
-                <th>Multiplier</th>
-                <th>Size</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Table rows will be populated by JS -->
-            </tbody>
-          </table>
-        </div>
-        <div id="structureSection">
-          <h4>Top Structure</h4>
-          <table id="structureTable">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Run</th>
-                <th>Score</th>
-                <th>Multiplier</th>
-                <th>Size</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Table rows will be populated by JS -->
-            </tbody>
-          </table>
-        </div>
-        <div id="reemergenceSection">
-          <h4>Top Reemergence</h4>
-          <table id="reemergenceTable">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Run</th>
-                <th>Score</th>
-                <th>Multiplier</th>
-                <th>Size</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Table rows will be populated by JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div id="logicSummary">
-        <h3>Anomaly Leaderboards</h3>
-        <div id="leaderboards">
-          <div class="leaderboard">
-            <h4>Top Structure</h4>
-            <table id="structureTopTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Least Structure</h4>
-            <table id="structureLeastTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Top Random</h4>
-            <table id="randomnessTopTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Least Random</h4>
-            <table id="randomnessLeastTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Top Robust/Reemergence</h4>
-            <table id="reemergenceTopTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Least Robust/Reemergence</h4>
-            <table id="reemergenceLeastTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Top Space/Event Density</h4>
-            <table id="event_densityTopTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-          <div class="leaderboard">
-            <h4>Least Space/Event Density</h4>
-            <table id="event_densityLeastTable">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Run</th>
-                  <th>Score</th>
-                  <th>Multiplier</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Rows will be populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div id="anomalyDetails" style="margin-top: 20px; display: none;">
-          <h4>Detailed Information</h4>
-          <pre id="anomalyDetailsText"></pre>
-        </div>
-      </div>
-      <div id="botLog">
-        <h4>Live Bot Action Log</h4>
-        <ul id="botLogList">
-          <!-- Log entries will be populated by JS -->
-        </ul>
-      </div>
-    <div id="coordinationGraph">
-      <h4>Bot Coordination Visualization</h4>
-      <canvas id="coordinationCanvas" width="400" height="200"></canvas>
-    </div>
-    <div id="hyperbolicGrid">
-      <h4>2D Hyperbolic Grid: Bot Geometries, Goals, and Logic</h4>
-      <canvas id="hyperbolicCanvas" width="800" height="600"></canvas>
-    </div>
-    <div id="autorunnerMap">
-      <h4>Autorunner Map: Bot Fleet Trajectories</h4>
-      <canvas id="mapCanvas" width="800" height="400"></canvas>
-    </div>
-    </div>
-    <!-- 5x7 Banner -->
-    <div id="banner">
-      <span id="bannerText">Top Anomaly: Structure Score 0.950 Run 001234 Mul 7 Grid 5x7 - Exploring Quantum Realities</span>
-    </div>
+    <div id="stats">8-BOT CUBE | PRIME-BARRIER: ENABLED | MODE: NO-RESOLUTION</div>
 
-    <div id="visualization"></div>
-    <div class="stats">
-      <div class="stat-item">
-        <div class="stat-value" id="eventsCount">0</div>
-        <div>Events Detected</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="trajectoryLength">0</div>
-        <div>Trajectory Points</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="inversionsCount">0</div>
-        <div>Reality Inversions</div>
-      </div>
-    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
 
-    <!-- Config Popup Modal -->
-    <div id="configModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Simulation Configuration</h2>
-        <div id="configControls">
-          <!-- Config inputs will be populated here -->
-        </div>
-      </div>
-    </div>
+    <script type="module">
+        import * as THREE from 'three';
 
-    <button id="openConfigBtn">Open Config Controls</button>
-  </div>
-  <!-- Enhanced floating particles -->
-  <div class="particle" style="left: 5%; top: 15%; animation-delay: 0s;"></div>
-  <div class="particle" style="left: 15%; top: 65%; animation-delay: 1s;"></div>
-  <div class="particle" style="left: 25%; top: 35%; animation-delay: 2s;"></div>
-  <div class="particle" style="left: 35%; top: 80%; animation-delay: 0.5s;"></div>
-  <div class="particle" style="left: 45%; top: 25%; animation-delay: 1.5s;"></div>
-  <div class="particle" style="left: 55%; top: 70%; animation-delay: 2.5s;"></div>
-  <div class="particle" style="left: 65%; top: 40%; animation-delay: 3s;"></div>
-  <div class="particle" style="left: 75%; top: 10%; animation-delay: 0.8s;"></div>
-  <div class="particle" style="left: 85%; top: 55%; animation-delay: 1.2s;"></div>
-  <div class="particle" style="left: 95%; top: 30%; animation-delay: 2.8s;"></div>
-  <script type="module" src="/src/browser.ts"></script>
+        // 1. Scene Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Add a Grid Helper for perspective
+        const grid = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
+        grid.rotation.x = Math.PI / 2;
+        scene.add(grid);
+
+        camera.position.z = 15;
+
+        // 3. The 8-Bot "Cube" Units
+        const botGroup = new THREE.Group();
+        const bots = [];
+        const corners = [
+            [-1,-1,-1], [1,-1,-1], [-1,1,-1], [1,1,-1],
+            [-1,-1,1], [1,-1,1], [-1,1,1], [1,1,1]
+        ];
+
+        corners.forEach(pos => {
+            const geo = new THREE.SphereGeometry(0.15, 16, 16);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+            const sphere = new THREE.Mesh(geo, mat);
+            sphere.position.set(...pos).multiplyScalar(2);
+            botGroup.add(sphere);
+            bots.push(sphere);
+        });
+        scene.add(botGroup);
+
+        // 4. Learning Visualization (Intended vs Actual)
+        // This is a dummy example - we will hook this to your worker output next
+        function createTrajectory() {
+            const points = [];
+            for(let i=0; i<50; i++) {
+                points.push(new THREE.Vector3(
+                    Math.sin(i * 0.2) * (i * 0.1),
+                    Math.cos(i * 0.2) * (i * 0.1),
+                    i * 0.1
+                ));
+            }
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMat = new THREE.LineBasicMaterial({ color: 0xffff00 });
+            const line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+        }
+
+        createTrajectory();
+
+        // 5. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate the group to see the "Braid"
+            botGroup.rotation.y += 0.01;
+            botGroup.rotation.x += 0.005;
+
+            // Pulse the anomaly score for visual effect
+            document.getElementById('anomaly-score').innerText = `ANOMALY: ${(Math.random() * 0.1 + 0.8).toFixed(3)}`;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.getElementById('status').innerText = "SYSTEM: ONLINE";
+    </script>
 </body>
 </html>
