@@ -1,5 +1,0 @@
-step,eventType,phaseBefore,phaseAfter,x,y,vx,vy
-2,sticky.enter,0,0,14,7,0,3
-3,sticky.exit,0,0,14,8,0,-3
-6,sticky.enter,0,0,14,0,0,0
-7,sticky.exit,0,0,14,0,0,0
