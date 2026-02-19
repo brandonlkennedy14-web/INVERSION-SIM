@@ -14,18 +14,18 @@
 </head>
 <body>
     <div class="grid">
-        <div class="panel" id="p1"><span class="label">SIM-1: FLEET_OF_9 (IMBALANCE_LEARNING)</span></div>
-        <div class="panel" id="p2"><span class="label">SIM-2: SHARED_LOSS_FIELD</span></div>
-        <div class="panel" id="p3"><span class="label">SIM-3: COLLECTIVE_Z_AXIS</span></div>
+        <div class="panel" id="p1"><span class="label">SIM-1: FLEET_9_IMBALANCE</span></div>
+        <div class="panel" id="p2"><span class="label">SIM-2: ATTENTION_HEATMAP</span></div>
+        <div class="panel" id="p3"><span class="label">SIM-3: HYPERBOLIC_LOSS</span></div>
     </div>
     <div id="controls">
-        <div class="row"><strong>ENTROPY:</strong> <input type="range" id="warp" min="1" max="500" value="150" style="flex:2"></div>
+        <div class="row"><strong>FLEET_ENTROPY:</strong> <input type="range" id="warp" min="1" max="500" value="150" style="flex:2"></div>
         <div class="row">
-            <button class="btn" id="saveBtn">💾 LOG FLEET</button>
-            <button class="btn" id="stackBtn">📡 SYNC GHOSTS</button>
-            <button class="btn" onclick="location.reload()">🔄 RESET</button>
+            <button class="btn" id="saveBtn">💾 LOG ATTENTION</button>
+            <button class="btn" id="syncBtn">📡 SYNC FIELD</button>
+            <button class="btn" onclick="location.reload()">🔄 REBOOT</button>
         </div>
-        <div id="status">FLEET_9_READY</div>
+        <div id="status">NEURAL_LINK_ESTABLISHED</div>
     </div>
 
     <script type="importmap">
@@ -51,18 +51,17 @@
         }
 
         const s1 = setup('p1', false); const s2 = setup('p2', false); const s3 = setup('p3', true);
-        const stackGroup = new THREE.Group(); s2.scene.add(stackGroup);
+        const attentionMap = new THREE.Group(); s2.scene.add(attentionMap);
         s3.scene.add(new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(4,4,4)), 0x00ff00));
 
-        // Create 9 Bots
         const bots = [];
         for(let i=0; i<9; i++) {
             const bot = {
                 pos: new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, 0),
                 vel: new THREE.Vector3((Math.random()-0.5)*0.05, (Math.random()-0.5)*0.05, (Math.random()-0.5)*0.02),
                 trail: [],
-                line: new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: new THREE.Color().setHSL(i/9, 1, 0.5), transparent: true, opacity: 0.6 })),
-                mesh: new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshBasicMaterial({color: 0x00ff00}))
+                line: new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: new THREE.Color().setHSL(i/9, 0.8, 0.5), transparent: true, opacity: 0.5 })),
+                mesh: new THREE.Mesh(new THREE.SphereGeometry(0.08), new THREE.MeshBasicMaterial({color: 0x00ff00}))
             };
             s1.scene.add(bot.line);
             s3.scene.add(bot.mesh);
@@ -70,32 +69,42 @@
         }
 
         document.getElementById('saveBtn').onclick = async () => {
-            status.innerText = "SAVING FLEET LOGS...";
-            const logs = bots.map(b => b.trail.map(p => ({x:p.x, y:p.y})));
-            await sb.from('jobs').insert([{ status: 'completed', variant_name: 'sim3colts', config: { fleet: 9 }, result: { logs: logs, type: 'fleet_billiard' } }]);
-            status.innerText = "FLEET DATA ARCHIVED";
+            status.innerText = "UPLOADING FIELD...";
+            const data = bots.map(b => b.trail.map(p => ({x:p.x, y:p.y})));
+            await sb.from('jobs').insert([{ variant_name: 'sim3colts', config: { entropy: warpSlider.value }, result: { logs: data } }]);
+            status.innerText = "FIELD ARCHIVED";
+        };
+
+        document.getElementById('syncBtn').onclick = async () => {
+            const { data } = await sb.from('jobs').select('result').eq('variant_name', 'sim3colts').order('created_at', { ascending: false }).limit(5);
+            while(attentionMap.children.length > 0){ attentionMap.remove(attentionMap.children[0]); }
+            if (data) {
+                data.forEach((run, idx) => {
+                    run.result.logs.forEach(log => {
+                        const geo = new THREE.BufferGeometry().setFromPoints(log.map(p => new THREE.Vector3(p.x, p.y, 0)));
+                        const mat = new THREE.LineBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.05 });
+                        attentionMap.add(new THREE.Line(geo, mat));
+                    });
+                });
+                status.innerText = "ATTENTION_FIELD_SYNCED";
+            }
         };
 
         function loop() {
             let e = warpSlider.value / 1000;
-            bots.forEach((b, idx) => {
+            bots.forEach(b => {
                 let dist = 2 - Math.max(Math.abs(b.pos.x), Math.abs(b.pos.y));
                 let cur = e / (dist + 0.05);
                 b.vel.x += Math.sin(b.pos.y * cur) * 0.01;
                 b.vel.y += Math.cos(b.pos.x * cur) * 0.01;
                 b.pos.add(b.vel);
-
-                if (Math.abs(b.pos.x) > 2) { b.vel.x *= -1; b.pos.x = Math.sign(b.pos.x) * 1.99; }
-                if (Math.abs(b.pos.y) > 2) { b.vel.y *= -1; b.pos.y = Math.sign(b.pos.y) * 1.99; }
-                
+                if (Math.abs(b.pos.x) > 2) b.vel.x *= -1;
+                if (Math.abs(b.pos.y) > 2) b.vel.y *= -1;
                 b.mesh.position.copy(b.pos);
-                b.trail.push(b.pos.clone()); if (b.trail.length > 200) b.trail.shift();
+                b.trail.push(b.pos.clone()); if (b.trail.length > 100) b.trail.shift();
                 b.line.geometry.setFromPoints(b.trail);
             });
-
-            s1.ren.render(s1.scene, s1.cam);
-            s2.ren.render(s2.scene, s2.cam);
-            s3.ren.render(s3.scene, s3.cam);
+            s1.ren.render(s1.scene, s1.cam); s2.ren.render(s2.scene, s2.cam); s3.ren.render(s3.scene, s3.cam);
             requestAnimationFrame(loop);
         }
         loop();
