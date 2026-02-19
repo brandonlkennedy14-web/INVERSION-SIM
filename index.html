@@ -5,92 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INVERSION-SIM | 3D Monitor</title>
     <style>
-        body { margin: 0; background: #050505; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; text-shadow: 0 0 5px #0f0; }
-        #stats { position: absolute; bottom: 10px; left: 10px; font-size: 12px; opacity: 0.7; }
+        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
+        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
+        #debug { position: absolute; top: 100px; left: 10px; color: red; font-size: 12px; }
         canvas { display: block; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>SIM-3: COL RUNNER</h1>
-        <div id="status">CONNECTING TO SUPABASE...</div>
-        <div id="anomaly-score">ANOMALY: 0.000</div>
+        <h1>SIM-3: MONITOR</h1>
+        <div id="status">INIT...</div>
     </div>
-    <div id="stats">8-BOT CUBE | PRIME-BARRIER: ENABLED | MODE: NO-RESOLUTION</div>
+    <div id="debug"></div>
 
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-            }
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
         }
+    }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
+        import { createClient } from 'supabase';
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        const debug = document.getElementById('debug');
+        const status = document.getElementById('status');
 
-        camera.position.z = 20;
-
-        // --- RENDER PRIME BARRIERS ---
-        const PRIME_LEVELS = [2, 3, 5, 7, 11, 13, 17, 19];
-        function renderBarriers() {
-            PRIME_LEVELS.forEach(level => {
-                const geometry = new THREE.PlaneGeometry(30, 30);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: 0xff0000, 
-                    side: THREE.DoubleSide, 
-                    transparent: true, 
-                    opacity: 0.05 
-                });
-                const plane = new THREE.Mesh(geometry, material);
-                plane.position.z = -level; // Negative Z for depth
-                scene.add(plane);
-
-                const edges = new THREE.EdgesGeometry(geometry);
-                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000, opacity: 0.2, transparent: true }));
-                line.position.z = -level;
-                scene.add(line);
-            });
-        }
-        renderBarriers();
-
-        // --- 8-BOT CUBE ---
-        const botGroup = new THREE.Group();
-        const corners = [[-1,-1,-1], [1,-1,-1], [-1,1,-1], [1,1,-1], [-1,-1,1], [1,-1,1], [-1,1,1], [1,1,1]];
-        corners.forEach(pos => {
-            const sphere = new THREE.Mesh(
-                new THREE.SphereGeometry(0.2, 16, 16), 
-                new THREE.MeshBasicMaterial({ color: 0x00ffcc })
-            );
-            sphere.position.set(...pos).multiplyScalar(3);
-            botGroup.add(sphere);
-        });
-        scene.add(botGroup);
-
-        // Animation Loop
-        function animate() {
-            requestAnimationFrame(animate);
-            botGroup.rotation.y += 0.01;
-            botGroup.rotation.x += 0.005;
-            document.getElementById('anomaly-score').innerText = `ANOMALY: ${(Math.random() * 0.1 + 0.8).toFixed(3)}`;
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+        try {
+            // 1. Scene Setup
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+            document.body.appendChild(renderer.domElement);
+            camera.position.z = 20;
 
-        document.getElementById('status').innerText = "SYSTEM: ONLINE";
+            // 2. Prime Barriers
+            const levels = [2, 3, 5, 7, 11, 13, 17, 19];
+            levels.forEach(l => {
+                const mesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(20, 20),
+                    new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.1, side: THREE.DoubleSide })
+                );
+                mesh.position.z = -l;
+                scene.add(mesh);
+            });
+
+            // 3. Grid
+            scene.add(new THREE.GridHelper(50, 50, 0x222222, 0x111111));
+
+            // 4. Supabase Connection
+            const sb = createClient('https://xoolmbmnzbsvcqeyqvyi.supabase.co', 'sb_publishable_A1cLFAKbAg77TfTkD2RB-w_PahU316T');
+            status.innerText = "LINKED TO SUPABASE";
+
+            // 5. Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // 6. Data Pulling
+            async function pull() {
+                const { data, error } = await sb.from('jobs').select('*').eq('status', 'completed').order('completed_at', { ascending: false }).limit(1).single();
+                if (data && data.result.log) {
+                    status.innerText = "VIEWING: " + data.id.substring(0,8);
+                    draw(data.result.log);
+                }
+                if (error) debug.innerText = "SB Error: " + error.message;
+            }
+
+            function draw(log) {
+                // Clear old lines
+                scene.children.filter(c => c.type === "Line").forEach(l => scene.remove(l));
+                const pts = log.map(e => new THREE.Vector3(e.step * 0.01, Math.sin(e.step*0.1)*2, -e.phi));
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x00ffff })));
+            }
+
+            setInterval(pull, 5000);
+            pull();
+
+        } catch (e) {
+            debug.innerText = "JS CRASH: " + e.message;
+        }
     </script>
 </body>
 </html>
