@@ -6,7 +6,7 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 80vh; gap: 2px; background: #222; }
         .panel { background: #000; position: relative; overflow: hidden; border: 1px solid #444; }
         .label { position: absolute; top: 2px; left: 2px; font-size: 8px; color: #0f0; z-index: 10; background: #000; padding: 2px; }
-        #controls { height: 20vh; background: #111; padding: 10px; border-top: 1px solid #0f0; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; }
+        #controls { height: 20vh; background: #111; padding: 10px; border-top: 1px solid #0f0; display: flex; flex-direction: column; gap: 5px; box-sizing: border-box; }
         .row { display: flex; align-items: center; gap: 10px; width: 100%; }
         .btn { flex: 1; background: #222; color: #0f0; border: 1px solid #0f0; padding: 8px; cursor: pointer; font-size: 10px; font-weight: bold; }
         #status { font-size: 9px; color: #f0f; text-align: center; }
@@ -14,19 +14,18 @@
 </head>
 <body>
     <div class="grid">
-        <div class="panel" id="p1"><span class="label">SIM-1: COLLECTIVE_STEERING</span></div>
-        <div class="panel" id="p2"><span class="label">SIM-2: PROBABILITY_FIELD</span></div>
-        <div class="panel" id="p3"><span class="label">SIM-3: 3D_ENGINE</span></div>
+        <div class="panel" id="p1"><span class="label">SIM-1: FLEET_OF_9 (IMBALANCE_LEARNING)</span></div>
+        <div class="panel" id="p2"><span class="label">SIM-2: SHARED_LOSS_FIELD</span></div>
+        <div class="panel" id="p3"><span class="label">SIM-3: COLLECTIVE_Z_AXIS</span></div>
     </div>
     <div id="controls">
+        <div class="row"><strong>ENTROPY:</strong> <input type="range" id="warp" min="1" max="500" value="150" style="flex:2"></div>
         <div class="row">
-            <strong>AUTONOMY:</strong> <input type="range" id="warp" min="1" max="500" value="150">
+            <button class="btn" id="saveBtn">💾 LOG FLEET</button>
+            <button class="btn" id="stackBtn">📡 SYNC GHOSTS</button>
+            <button class="btn" onclick="location.reload()">🔄 RESET</button>
         </div>
-        <div class="row">
-            <button class="btn" id="saveBtn">💾 LOG SEARCH</button>
-            <button class="btn" id="stackBtn">📡 SYNC & STEER</button>
-        </div>
-        <div id="status">NEURAL_STEERING_OFFLINE</div>
+        <div id="status">FLEET_9_READY</div>
     </div>
 
     <script type="importmap">
@@ -39,8 +38,6 @@
         const sb = createClient('https://xoolmbmnzbsvcqeyqvyi.supabase.co', 'sb_publishable_A1cLFAKbAg77TfTkD2RB-w_PahU316T');
         const status = document.getElementById('status');
         const warpSlider = document.getElementById('warp');
-        let trail = [];
-        let collectivePoints = [];
 
         function setup(id, is3D) {
             const el = document.getElementById(id);
@@ -54,77 +51,51 @@
         }
 
         const s1 = setup('p1', false); const s2 = setup('p2', false); const s3 = setup('p3', true);
-        const liveL = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xff00ff }));
-        s1.scene.add(liveL);
-        const stackGroup = new THREE.Group();
-        s2.scene.add(stackGroup);
-
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color: 0x00ff00}));
-        s3.scene.add(ball);
+        const stackGroup = new THREE.Group(); s2.scene.add(stackGroup);
         s3.scene.add(new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(4,4,4)), 0x00ff00));
 
-        let pos = new THREE.Vector3(0,0,0);
-        let vel = new THREE.Vector3(0.041, 0.033, 0.021);
+        // Create 9 Bots
+        const bots = [];
+        for(let i=0; i<9; i++) {
+            const bot = {
+                pos: new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, 0),
+                vel: new THREE.Vector3((Math.random()-0.5)*0.05, (Math.random()-0.5)*0.05, (Math.random()-0.5)*0.02),
+                trail: [],
+                line: new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: new THREE.Color().setHSL(i/9, 1, 0.5), transparent: true, opacity: 0.6 })),
+                mesh: new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshBasicMaterial({color: 0x00ff00}))
+            };
+            s1.scene.add(bot.line);
+            s3.scene.add(bot.mesh);
+            bots.push(bot);
+        }
 
         document.getElementById('saveBtn').onclick = async () => {
-            status.innerText = "UPLOADING...";
-            await sb.from('jobs').insert([{
-                status: 'completed', variant_name: 'sim3colts',
-                config: { entropy: warpSlider.value },
-                result: { log: trail.map(p=>({x:p.x, y:p.y})), type: 'billiard_map' }
-            }]);
-            status.innerText = "COORDINATION LOGGED";
-        };
-
-        document.getElementById('stackBtn').onclick = async () => {
-            status.innerText = "SYNCING STEERING FIELD...";
-            const { data } = await sb.from('jobs').select('result').eq('variant_name', 'sim3colts').order('created_at', { ascending: false }).limit(10);
-            while(stackGroup.children.length > 0){ stackGroup.remove(stackGroup.children[0]); }
-            collectivePoints = [];
-            if (data) {
-                data.forEach((run, i) => {
-                    const pts = run.result.log.map(p => new THREE.Vector3(p.x, p.y, 0));
-                    collectivePoints.push(...pts);
-                    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-                    const mat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.1 + (i * 0.05) });
-                    stackGroup.add(new THREE.Line(geo, mat));
-                });
-                status.innerText = "STEERING_ACTIVE: 10 NODES";
-            }
+            status.innerText = "SAVING FLEET LOGS...";
+            const logs = bots.map(b => b.trail.map(p => ({x:p.x, y:p.y})));
+            await sb.from('jobs').insert([{ status: 'completed', variant_name: 'sim3colts', config: { fleet: 9 }, result: { logs: logs, type: 'fleet_billiard' } }]);
+            status.innerText = "FLEET DATA ARCHIVED";
         };
 
         function loop() {
             let e = warpSlider.value / 1000;
-            let dist = 2 - Math.max(Math.abs(pos.x), Math.abs(pos.y));
-            let cur = e / (dist + 0.05);
-            
-            // --- STEERING LOGIC ---
-            // If we have collective data, the bot "avoids" the most crowded points
-            if (collectivePoints.length > 0) {
-                let repulsion = new THREE.Vector3(0,0,0);
-                // Sample a few collective points to see if we're too close
-                for(let i=0; i<10; i++) {
-                    let cp = collectivePoints[Math.floor(Math.random() * collectivePoints.length)];
-                    let d = pos.distanceTo(cp);
-                    if (d < 0.5) {
-                        let diff = pos.clone().sub(cp).normalize().multiplyScalar(0.001 / (d + 0.1));
-                        repulsion.add(diff);
-                    }
-                }
-                vel.add(repulsion);
-            }
+            bots.forEach((b, idx) => {
+                let dist = 2 - Math.max(Math.abs(b.pos.x), Math.abs(b.pos.y));
+                let cur = e / (dist + 0.05);
+                b.vel.x += Math.sin(b.pos.y * cur) * 0.01;
+                b.vel.y += Math.cos(b.pos.x * cur) * 0.01;
+                b.pos.add(b.vel);
 
-            vel.x += Math.sin(pos.y * cur) * 0.01;
-            vel.y += Math.cos(pos.x * cur) * 0.01;
-            pos.add(vel);
+                if (Math.abs(b.pos.x) > 2) { b.vel.x *= -1; b.pos.x = Math.sign(b.pos.x) * 1.99; }
+                if (Math.abs(b.pos.y) > 2) { b.vel.y *= -1; b.pos.y = Math.sign(b.pos.y) * 1.99; }
+                
+                b.mesh.position.copy(b.pos);
+                b.trail.push(b.pos.clone()); if (b.trail.length > 200) b.trail.shift();
+                b.line.geometry.setFromPoints(b.trail);
+            });
 
-            if (Math.abs(pos.x) > 2) { vel.x *= -1; pos.x = Math.sign(pos.x) * 1.99; }
-            if (Math.abs(pos.y) > 2) { vel.y *= -1; pos.y = Math.sign(pos.y) * 1.99; }
-            
-            ball.position.copy(pos);
-            trail.push(pos.clone()); if (trail.length > 1000) trail.shift();
-            liveL.geometry.setFromPoints(trail.map(p => new THREE.Vector3(p.x, p.y, 0)));
-            s1.ren.render(s1.scene, s1.cam); s2.ren.render(s2.scene, s2.cam); s3.ren.render(s3.scene, s3.cam);
+            s1.ren.render(s1.scene, s1.cam);
+            s2.ren.render(s2.scene, s2.cam);
+            s3.ren.render(s3.scene, s3.cam);
             requestAnimationFrame(loop);
         }
         loop();
