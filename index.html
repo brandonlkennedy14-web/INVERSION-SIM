@@ -20,34 +20,7 @@
     <div id="stats">8-BOT CUBE | PRIME-BARRIER: ENABLED | MODE: NO-RESOLUTION</div>
 
     <script type="importmap">
-        {// Define the Prime Singularities from sim3col.ts
-const PRIME_LEVELS = [2, 3, 5, 7, 11, 13, 17, 19];
-
-function renderBarriers() {
-    PRIME_LEVELS.forEach(level => {
-        // Create a semi-transparent red plane for each Prime Barrier
-        const geometry = new THREE.PlaneGeometry(20, 20);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000, 
-            side: THREE.DoubleSide, 
-            transparent: true, 
-            opacity: 0.1 
-        });
-        const plane = new THREE.Mesh(geometry, material);
-        
-        // Position the plane along the Z-axis (mapped to Phase/Phi)
-        plane.position.z = level; 
-        scene.add(plane);
-        
-        // Add a wireframe edge so it's visible
-        const edges = new THREE.EdgesGeometry(geometry);
-        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000, opacity: 0.5, transparent: true }));
-        line.position.z = level;
-        scene.add(line);
-    });
-}
-
-renderBarriers();
+        {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
             }
@@ -57,74 +30,60 @@ renderBarriers();
     <script type="module">
         import * as THREE from 'three';
 
-        // 1. Scene Setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 2. Add a Grid Helper for perspective
-        const grid = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
-        grid.rotation.x = Math.PI / 2;
-        scene.add(grid);
+        camera.position.z = 20;
 
-        camera.position.z = 15;
+        // --- RENDER PRIME BARRIERS ---
+        const PRIME_LEVELS = [2, 3, 5, 7, 11, 13, 17, 19];
+        function renderBarriers() {
+            PRIME_LEVELS.forEach(level => {
+                const geometry = new THREE.PlaneGeometry(30, 30);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0xff0000, 
+                    side: THREE.DoubleSide, 
+                    transparent: true, 
+                    opacity: 0.05 
+                });
+                const plane = new THREE.Mesh(geometry, material);
+                plane.position.z = -level; // Negative Z for depth
+                scene.add(plane);
 
-        // 3. The 8-Bot "Cube" Units
+                const edges = new THREE.EdgesGeometry(geometry);
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000, opacity: 0.2, transparent: true }));
+                line.position.z = -level;
+                scene.add(line);
+            });
+        }
+        renderBarriers();
+
+        // --- 8-BOT CUBE ---
         const botGroup = new THREE.Group();
-        const bots = [];
-        const corners = [
-            [-1,-1,-1], [1,-1,-1], [-1,1,-1], [1,1,-1],
-            [-1,-1,1], [1,-1,1], [-1,1,1], [1,1,1]
-        ];
-
+        const corners = [[-1,-1,-1], [1,-1,-1], [-1,1,-1], [1,1,-1], [-1,-1,1], [1,-1,1], [-1,1,1], [1,1,1]];
         corners.forEach(pos => {
-            const geo = new THREE.SphereGeometry(0.15, 16, 16);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-            const sphere = new THREE.Mesh(geo, mat);
-            sphere.position.set(...pos).multiplyScalar(2);
+            const sphere = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 16, 16), 
+                new THREE.MeshBasicMaterial({ color: 0x00ffcc })
+            );
+            sphere.position.set(...pos).multiplyScalar(3);
             botGroup.add(sphere);
-            bots.push(sphere);
         });
         scene.add(botGroup);
 
-        // 4. Learning Visualization (Intended vs Actual)
-        // This is a dummy example - we will hook this to your worker output next
-        function createTrajectory() {
-            const points = [];
-            for(let i=0; i<50; i++) {
-                points.push(new THREE.Vector3(
-                    Math.sin(i * 0.2) * (i * 0.1),
-                    Math.cos(i * 0.2) * (i * 0.1),
-                    i * 0.1
-                ));
-            }
-            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-            const lineMat = new THREE.LineBasicMaterial({ color: 0xffff00 });
-            const line = new THREE.Line(lineGeo, lineMat);
-            scene.add(line);
-        }
-
-        createTrajectory();
-
-        // 5. Animation Loop
+        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Rotate the group to see the "Braid"
             botGroup.rotation.y += 0.01;
             botGroup.rotation.x += 0.005;
-
-            // Pulse the anomaly score for visual effect
             document.getElementById('anomaly-score').innerText = `ANOMALY: ${(Math.random() * 0.1 + 0.8).toFixed(3)}`;
-
             renderer.render(scene, camera);
         }
-
         animate();
 
-        // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
