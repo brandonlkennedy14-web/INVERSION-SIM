@@ -1,4 +1,55 @@
 // src/main.ts
+import { createClient } from '@supabase/supabase-js'
+
+// 1. Initialize Supabase with your credentials
+const supabaseUrl = 'https://xoolmbmnzbsvcqeyqvyi.supabase.co'
+const supabaseKey = 'sb_publishable_A1cLFAKbAg77TfTkD2RB-w_PahU316T'
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+async function runDistributedJob() {
+  // 2. Fetch a pending job (RPC or single select)
+  // We'll grab one job that hasn't been started yet
+  const { data: job, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('status', 'pending')
+    .limit(1)
+    .single()
+
+  if (error || !job) {
+    console.log("No jobs available or error:", error)
+    return
+  }
+
+  // 3. Lock the job so other users don't grab it
+  await supabase
+    .from('jobs')
+    .update({ status: 'processing', started_at: new Date() })
+    .eq('id', job.id)
+
+  try {
+    // 4. Run your simulation (insert your actual sim function here)
+    const result = await runSimulation(job.payload)
+
+    // 5. Submit results and mark as completed
+    await supabase
+      .from('jobs')
+      .update({ 
+        status: 'completed', 
+        result: result, 
+        completed_at: new Date() 
+      })
+      .eq('id', job.id)
+
+    console.log(`Job ${job.id} completed successfully!`)
+  } catch (err) {
+    // If the sim fails, put it back to pending
+    await supabase
+      .from('jobs')
+      .update({ status: 'pending' })
+      .eq('id', job.id)
+  }
+}
 import {runNextJob} from'./coordinator'
 import fs from "node:fs";
 import path from "node:path";
