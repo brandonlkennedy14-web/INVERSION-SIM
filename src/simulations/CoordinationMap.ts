@@ -1,7 +1,29 @@
 // src/simulations/CoordinationMap.ts
 // Simulation 2: Representational map of nonlocal coordination
 // Visualizes bot coordination across dimensions using data from ParticleSimulation
+import { createClient } from 'https://jspm.dev/@supabase/supabase-js'
 
+const supabase = createClient(
+ 'https://xoolmbmnzbsvcqeyqvyi.supabase.co',
+ 'sb_publishable_A1cLFAKbAg77TfTkD2RB-w_PahU316T'
+)
+
+export async function runNextJob(simulationFn) {
+ console.log('Checking for jobs...')
+ const { data: job } = await supabase.from('jobs').select('*').eq('status', 'pending').limit(1).single()
+
+ if (!job) return console.log('Standing by.');
+
+ await supabase.from('jobs').update({ status: 'processing' }).eq('id', job.id)
+
+ try {
+ const result = await simulationFn(job.config)
+ await supabase.from('jobs').update({ status: 'completed', result }).eq('id', job.id)
+ console.log('Success! 🚀')
+ } catch (err) {
+ await supabase.from('jobs').update({ status: 'failed', result: { error: err.message } }).eq('id', job.id)
+ }
+}
 import type { SimulationBridge, SimulationEvent } from '../bridge/SimulationBridge.js';
 import type { BlockchainSync } from '../bridge/BlockchainSync.js';
 
