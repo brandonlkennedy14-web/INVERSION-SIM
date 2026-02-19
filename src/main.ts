@@ -1,4 +1,5 @@
 // src/main.ts
+import {runNextJob} from'./coordinator'
 import fs from "node:fs";
 import path from "node:path";
 import { TopologyRenderer } from './visualization/TopologyRenderer.js';
@@ -83,7 +84,45 @@ function printSummary(args: {
   console.log("Events:", args.events);
   console.log("Saved to:", args.runDir);
 }
+```typescript
+//... (keep your existing imports and helpers)...
 
+async function startWorker() {
+ console.log("🚀 Worker Node Online. Connecting to Swarm...");
+
+ // Loop forever to keep processing jobs
+ while (true) {
+ 
+ // Pass the simulation logic to the coordinator
+ await runNextJob(async (config: RunConfig) => {
+ 
+ // 1. Setup local run directory
+ const runId = readRunCounter();
+ const runName = `run_${String(runId).padStart(6, '0')}`;
+ const outDir = path.join(RUNS_DIR, runName);
+ ensureDir(outDir);
+ 
+ // Increment local counter
+ fs.writeFileSync(COUNTER_PATH, (runId + 1).toString(), "utf8");
+ console.log(`⚙️ Processing Job in: ${outDir}`);
+
+ // 2. Configure and Run the Variant
+ const variant = new SquareInversionReflect(config);
+ 
+ // Run the simulation
+ const result = await runVariant(variant, config, outDir);
+ 
+ return result || { status: "done", outDir };
+ });
+
+ // Wait 5 seconds before checking again
+ await new Promise(r => setTimeout(r, 5000));
+ }
+}
+
+// Start the worker
+startWorker().catch(err => console.error("Fatal Worker Error:", err));
+```
 // ---------- config ----------
 const cfg: RunConfig = {
   sizeX: 5,
