@@ -20,7 +20,34 @@
     <div id="stats">8-BOT CUBE | PRIME-BARRIER: ENABLED | MODE: NO-RESOLUTION</div>
 
     <script type="importmap">
-        {
+        {// Define the Prime Singularities from sim3col.ts
+const PRIME_LEVELS = [2, 3, 5, 7, 11, 13, 17, 19];
+
+function renderBarriers() {
+    PRIME_LEVELS.forEach(level => {
+        // Create a semi-transparent red plane for each Prime Barrier
+        const geometry = new THREE.PlaneGeometry(20, 20);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, 
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 0.1 
+        });
+        const plane = new THREE.Mesh(geometry, material);
+        
+        // Position the plane along the Z-axis (mapped to Phase/Phi)
+        plane.position.z = level; 
+        scene.add(plane);
+        
+        // Add a wireframe edge so it's visible
+        const edges = new THREE.EdgesGeometry(geometry);
+        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000, opacity: 0.5, transparent: true }));
+        line.position.z = level;
+        scene.add(line);
+    });
+}
+
+renderBarriers();
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
             }
