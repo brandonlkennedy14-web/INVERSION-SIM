@@ -1,4 +1,48 @@
 import * as THREE from 'three';
+
+// --- LEARNING VISUALIZATION TOOLS ---
+
+function createLearningScene(botData: any) {
+    // 1. Draw the "Actual" Trajectory (The Truth)
+    const actualPoints = botData.path.map((p: any) => new THREE.Vector3(p.x, p.y, p.z));
+    const actualGeo = new THREE.BufferGeometry().setFromPoints(actualPoints);
+    const actualMat = new THREE.LineBasicMaterial({ color: 0x00ffff }); // Cyan for reality
+    const actualLine = new THREE.Line(actualGeo, actualMat);
+    scene.add(actualLine);
+
+    // 2. Draw the "Intended" Trajectory (The Naive Ego)
+    // We calculate a straight line from start in the original direction
+    const start = actualPoints[0];
+    const direction = new THREE.Vector3(botData.vx0, botData.vy0, 0).normalize();
+    const intendedEnd = start.clone().add(direction.multiplyScalar(botData.steps * 0.1));
+    
+    const intendedGeo = new THREE.BufferGeometry().setFromPoints([start, intendedEnd]);
+    const intendedMat = new THREE.LineDashedMaterial({ color: 0xff00ff, dashSize: 0.2, gapSize: 0.1 });
+    const intendedLine = new THREE.Line(intendedGeo, intendedMat);
+    intendedLine.computeLineDistances(); // Dash effect
+    scene.add(intendedLine);
+
+    // 3. Draw Learning Arrows (Where Reality hit the Ego)
+    actualPoints.forEach((point, i) => {
+        if (i % 100 === 0) { // Every 100 steps to avoid bloat
+            const intendedAtStep = start.clone().add(direction.clone().multiplyScalar(i * 0.1));
+            const learningDelta = new THREE.Vector3().subVectors(point, intendedAtStep);
+            
+            // If the gap is large, the bot "learned" a constraint here
+            if (learningDelta.length() > 0.5) {
+                const arrow = new THREE.ArrowHelper(
+                    learningDelta.clone().normalize(), 
+                    intendedAtStep, 
+                    learningDelta.length(), 
+                    0xffff00 // Yellow for Learning
+                );
+                scene.add(arrow);
+            }
+        }
+    });
+}
+
+import * as THREE from 'three';
 import { createClient } from '@supabase/supabase-js';
 
 // 1. Setup Supabase
